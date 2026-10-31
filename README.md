@@ -106,7 +106,7 @@ docker run -d --restart=always -p 8501:8501 \
 
 ## 检测能力
 
-### 内容检测（21 条规则，加权打分）
+### 内容检测（27 条规则，加权打分）
 
 | 类别 | 强特征示例 | 说明 |
 | --- | --- | --- |
@@ -172,7 +172,7 @@ sec_log_analyzer/
   models.py      数据结构（LogEntry / Finding / AnalysisResult）
   config.py      可调参数，密钥从环境变量读
   parser.py      nginx combined/common + syslog 解析，编码降级
-  rules.py       21 条特征规则 + 归一化
+  rules.py       27 条特征规则 + 归一化
   detector.py    内容检测 + 行为检测
   ai_analyst.py  大模型研判（去重/并发/重试/降级）
   reporter.py    Markdown / HTML / CSV
