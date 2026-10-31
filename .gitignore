@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# 虚拟环境
+.venv/
+venv/
+
+# 本项目产物
+reports/
+
+# 密钥：绝不入库
+.env
+项目测试
+
+# IDE
+.idea/
+.vscode/
+
+# 个人资料，不公开
+docs/
+simple/00_list_drill.py
+simple/01_models_drill.py
+simple/02_syntax_demo.py

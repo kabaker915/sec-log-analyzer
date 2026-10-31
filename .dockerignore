@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+reports/
+.git/
+.env
+项目测试
+.idea/
+.vscode/
+real_access.log
+uv.lock

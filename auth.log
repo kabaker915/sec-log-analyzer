@@ -1,0 +1,9 @@
+Jan 15 03:22:01 server sshd[1234]: Failed password for invalid user admin from 10.0.0.5 port 4321 ssh2
+Jan 15 03:22:03 server sshd[1234]: Connection closed by 10.0.0.5 port 4321 [preauth]
+Jan 15 03:22:05 server sshd[1234]: Failed password for root from 10.0.0.5 port 4322 ssh2
+Jan 15 03:22:10 server sshd[1235]: Failed password for invalid user test from 192.168.1.10 port 22 ssh2
+Jan 15 03:22:15 server sshd[1236]: Accepted password for alice from 192.168.1.10 port 5000 ssh2
+Jan 15 03:23:01 server sshd[1237]: Failed password for invalid user admin from 172.16.0.8 port 5555 ssh2
+Jan 15 03:24:30 server sshd[1238]: Failed password for invalid user admin from 10.0.0.5 port 4323 ssh2
+Jan 15 03:25:01 server sshd[1239]: Failed password for invalid user guest from 172.16.0.8 port 5556 ssh2
+Jan 15 03:25:30 server sshd[1240]: Failed password for invalid user guest from 172.16.0.8 port 5557 ssh2

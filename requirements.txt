@@ -1,0 +1,6 @@
+# 核心引擎（解析 / 规则 / 检测 / 报告）只依赖 Python 标准库
+# 不需要安装任何东西就能跑命令行版：
+#   python -m sec_log_analyzer.cli access.log
+
+# 只有 Streamlit 网页界面需要这个
+streamlit>=1.30

@@ -1,0 +1,10 @@
+=== Web 日志安全分析报告 ===
+
+[WARN] 发现SQL注入! IP: 10.0.0.5
+ 日志: 10.0.0.5 - - [15/Oct/2026:10:01:01] "GET /login.php?user=admin' OR '1'='1 HTTP/1.1" 200 2048
+
+[WARN] 发现XSS! IP: 10.0.0.5
+ 日志: 10.0.0.5 - - [15/Oct/2026:10:01:05] "GET /search.php?q=<script>alert(1)</script> HTTP/1.1" 200 512
+
+[ALERT] 发现目录扫描! IP: 172.16.0.8 在60秒内触发了3次404
+
