@@ -42,7 +42,9 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         result = analyze_file(p, config)
-        stem = f"{args.out}_{p.stem}"
+        stem = Path(f"{args.out}_{p.stem}")
+        # 输出目录可能不存在（比如 --out reports/demo），先建出来再写
+        stem.parent.mkdir(parents=True, exist_ok=True)
         Path(f"{stem}.md").write_text(to_markdown(result), encoding="utf-8")
         Path(f"{stem}.html").write_text(to_html(result), encoding="utf-8")
         Path(f"{stem}.csv").write_text(to_csv(result), encoding="utf-8-sig")

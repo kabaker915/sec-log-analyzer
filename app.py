@@ -1,104 +1,101 @@
+"""Streamlit 界面 —— 只负责展示，检测逻辑全在 sec_log_analyzer 里。
+
+这个文件刻意写得很薄：界面代码越少，越不容易出状态问题。
+"""
+
+import os
+
 import streamlit as st
-import re
-import urllib.request
-import json
-from datetime import datetime
-from collections import deque
 
-# ================= 页面配置 =================
-st.set_page_config(page_title="AI 智能安全分析平台", page_icon="🛡️", layout="wide")
-st.title("🛡️ 智能 Web 日志安全分析平台")
-st.markdown("基于规则引擎粗筛与 AI 大模型精判的安全运营工具")
+from sec_log_analyzer import Config
+from sec_log_analyzer.pipeline import analyze_bytes
+from sec_log_analyzer.reporter import to_csv, to_html, to_markdown
 
-# ================= 侧边栏配置 =================
-st.sidebar.header("⚙️ 参数配置")
-api_key = st.sidebar.text_input("DeepSeek API Key", type="password", help="请输入你的 sk- 开头的 API Key")
-window = st.sidebar.slider("404 扫描检测窗口 (秒)", 10, 300, 60)
-threshold = st.sidebar.slider("404 扫描触发阈值 (次)", 3, 50, 3)
+st.set_page_config(page_title="日志安全分析", page_icon="🛡️", layout="wide")
+st.title("Web 日志安全分析")
+st.caption("规则引擎粗筛 + 行为检测 + 大模型研判")
 
+# ---------------------------------------------------------------- 侧边栏
+with st.sidebar:
+    st.header("配置")
+    api_key = st.text_input(
+        "DeepSeek API Key",
+        type="password",
+        value=os.getenv("DEEPSEEK_API_KEY", ""),
+        help="留空则只做规则检测，不调用大模型",
+    )
+    use_ai = st.checkbox("启用 AI 研判", value=bool(api_key))
+    window = st.slider("扫描检测窗口（秒）", 10, 300, 60)
+    threshold = st.slider("404 触发阈值（次）", 3, 30, 8)
 
-# ================= 核心函数 =================
-def ask_ai(log_line, attack_type, key):
-    url = "https://api.deepseek.com/chat/completions"
-    headers = {"Content-Type": "application/json", "Authorization": f"Bearer {key}"}
-    prompt = f"你是一个安全专家。我检测到一条疑似【{attack_type}】的日志，请用一段话简练分析其攻击意图，并给出1条核心处置建议。日志：\n{log_line}"
-    data = {
-        "model": "deepseek-chat",
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3
-    }
-    try:
-        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers, method='POST')
-        with urllib.request.urlopen(req) as response:
-            result = json.loads(response.read().decode('utf-8'))
-            return result['choices'][0]['message']['content']
-    except Exception as e:
-        return f"AI 研判失败: {e}"
+# ---------------------------------------------------------------- 上传
+uploaded = st.file_uploader("上传 nginx access.log 或 Linux auth.log", type=["log", "txt"])
 
+if uploaded and st.button("开始分析", type="primary"):
+    config = Config.from_env()
+    config.ai_api_key = api_key
+    config.ai_enabled = use_ai and bool(api_key)
+    config.scan_window_seconds = window
+    config.scan_404_threshold = threshold
 
-# ================= 主界面逻辑 =================
-uploaded_file = st.file_uploader("请上传 Nginx access.log 日志文件", type=["log", "txt"])
+    with st.spinner("分析中…"):
+        result = analyze_bytes(uploaded.getvalue(), uploaded.name, config)
 
-if uploaded_file is not None:
-    if st.button("🚀 开始智能研判", type="primary"):
-        if not api_key:
-            st.error("请先在左侧侧边栏输入 DeepSeek API Key！")
-            st.stop()
+    # 存进 session_state：Streamlit 每次交互都会重跑脚本，不缓存的话结果会丢
+    st.session_state["result"] = result
 
-        sqli = re.compile(r"(union\s+select|or\s+['\"]?1['\"]?=1|--|')", re.IGNORECASE)
-        xss = re.compile(r"(<script>|alert\(|onerror=)", re.IGNORECASE)
-        ip_404, alerted = {}, set()
+result = st.session_state.get("result")
+if result is None:
+    st.info("上传日志文件后开始分析。核心引擎零依赖，不配置 API Key 也能正常工作。")
+    st.stop()
 
-        results = []
-        lines = uploaded_file.getvalue().decode("utf-8").splitlines()
+# ---------------------------------------------------------------- 概览
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("解析行数", len(result.entries))
+c2.metric("告警数", len(result.findings))
+c3.metric("解析失败", len(result.parse_errors))
+c4.metric("耗时", f"{result.elapsed_ms} ms")
 
-        progress_bar = st.progress(0)
-        status_text = st.empty()
+by_category = result.count_by(lambda f: f.category)
+if by_category:
+    st.subheader("告警分布")
+    st.bar_chart(dict(by_category))
 
-        for i, line in enumerate(lines):
-            status_text.text(f"正在分析第 {i + 1}/{len(lines)} 行...")
-            progress_bar.progress((i + 1) / len(lines))
+# ---------------------------------------------------------------- 明细
+if result.findings:
+    st.subheader("告警明细")
+    st.dataframe(
+        [
+            {
+                "时间": f.ts.strftime("%Y-%m-%d %H:%M:%S") if f.ts else "",
+                "来源 IP": f.ip,
+                "类型": f.category,
+                "等级": f.severity.value,
+                "评分": f.score,
+                "请求": f.entry.path,
+                "判定依据": f.reason,
+            }
+            for f in result.findings
+        ],
+        use_container_width=True,
+        hide_index=True,
+    )
 
-            if not line.strip(): continue
-            ip = line.split()[0]
-            attack_type = None
+    for f in result.findings[:20]:
+        with st.expander(f"{f.category} · {f.ip} · {f.entry.path}"):
+            st.code(f.entry.raw, language="text")
+            st.write(f"**判定依据**：{f.reason}")
+            if f.ai_comment:
+                st.info(f.ai_comment)
+else:
+    st.success("未发现异常行为。")
 
-            # 规则检测
-            if sqli.search(line):
-                attack_type = "SQL注入"
-            elif xss.search(line):
-                attack_type = "XSS攻击"
+# ---------------------------------------------------------------- 导出
+st.subheader("导出报告")
+d1, d2, d3 = st.columns(3)
+d1.download_button("Markdown", to_markdown(result), file_name="report.md")
+d2.download_button("HTML", to_html(result), file_name="report.html")
+d3.download_button("CSV", to_csv(result), file_name="report.csv")
 
-            if " 404 " in line:
-                m_t = re.search(r"\[(.*?)\]", line)
-                if m_t:
-                    t = datetime.strptime(m_t.group(1), '%d/%b/%Y:%H:%M:%S')
-                    if ip not in ip_404: ip_404[ip] = deque()
-                    q = ip_404[ip]
-                    q.append(t)
-                    while q and (t - q[0]).seconds > window: q.popleft()
-                    if len(q) >= threshold and ip not in alerted:
-                        attack_type = "目录扫描"
-                        alerted.add(ip)
-
-            # 如果命中规则，调用 AI
-            if attack_type:
-                ai_advice = ask_ai(line.strip(), attack_type, api_key)
-                results.append({
-                    "IP": ip,
-                    "攻击类型": attack_type,
-                    "原始日志": line.strip(),
-                    "AI 研判建议": ai_advice
-                })
-
-        status_text.success("✅ 分析完成！")
-
-        # 展示结果
-        if results:
-            st.warning(f"检测到 {len(results)} 条高危行为！")
-            for res in results:
-                with st.expander(f"🚨 {res['攻击类型']} - 来源 IP: {res['IP']}"):
-                    st.code(res['原始日志'], language="text")
-                    st.info(f"**AI 研判建议：**\n\n{res['AI 研判建议']}")
-        else:
-            st.success("🎉 未发现异常行为，系统安全。")
+for note in result.notes:
+    st.caption(note)

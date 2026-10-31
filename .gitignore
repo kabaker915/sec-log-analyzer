@@ -24,3 +24,6 @@ docs/
 simple/00_list_drill.py
 simple/01_models_drill.py
 simple/02_syntax_demo.py
+
+# 运行产物
+out/
