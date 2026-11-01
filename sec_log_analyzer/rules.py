@@ -217,6 +217,11 @@ RULES: tuple[Rule, ...] = (
         re.compile(r"\.(?:sql|bak|swp|old|orig|save)$", re.I),
         "备份后缀，也可能只是正常静态资源",
     ),
+    Rule(
+        "sens_actuator", "敏感文件探测", STRONG,
+        re.compile(r"/actuator/(?:env|heapdump|jolokia)", re.I),
+        "Spring Actuator 端点暴露，可能泄露环境变量与内存数据",
+    ),
 
     # ---------------------------- WebShell ----------------------------
     Rule(
