@@ -27,3 +27,13 @@ simple/02_syntax_demo.py
 
 # 运行产物
 out/
+
+# 真实日志：含真实公网 IP，绝不入库。
+# 需要公开时先用 tools/anonymize_log.py 脱敏，输出到 samples/
+real_access*.log
+real_*.log
+
+# 脱敏映射表：能反查真实 IP，只能留本地
+*.ipmap
+.ipmap
+

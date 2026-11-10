@@ -57,7 +57,20 @@ SSH_ACCEPTED = re.compile(
 SSH_INVALID_USER = re.compile(
     r"Invalid user (?P<user>\S+) from (?P<ip>\d{1,3}(?:\.\d{1,3}){3})"
 )
-IP_ANY = re.compile(r"from (?P<ip>\d{1,3}(?:\.\d{1,3}){3})")
+# 连接被断开/关闭：不是攻击证据，但属于正常会话的收尾。
+# 早期版本把它当解析失败丢掉，导致 auth.log 的解析成功率莫名其妙只有 88%。
+SSH_DISCONNECT = re.compile(
+    r"(?:Connection closed by|Disconnected from) (?P<ip>\d{1,3}(?:\.\d{1,3}){3})"
+)
+# 兜底提取 IP。必须同时认 from 和 by 两个介词：
+#   Failed password for root from 10.0.0.5 ...   -> from
+#   Connection closed by 10.0.0.5 port 4321      -> by
+#   Disconnected from 172.16.0.8 port 5612       -> from
+# 原版只写了 from，导致 "Connection closed by" 这类行整行被判为解析失败。
+# 真实服务器上这类行数量极大，漏掉它们会让"解析成功率"这个指标失去意义。
+IP_ANY = re.compile(
+    r"(?:from|by) (?P<ip>\d{1,3}(?:\.\d{1,3}){3})"
+)
 
 
 def decode_bytes(data: bytes, candidates: tuple[str, ...]) -> tuple[str, str]:
@@ -164,6 +177,8 @@ def parse_auth_line(line: str, now: datetime | None = None) -> LogEntry | None:
         username, ip, event = am.group("user"), am.group("ip"), "accepted"
     elif im := SSH_INVALID_USER.search(msg):
         username, ip, event = im.group("user"), im.group("ip"), "invalid_user"
+    elif dm := SSH_DISCONNECT.search(msg):
+        ip, event = dm.group("ip"), "disconnect"
     elif pm := IP_ANY.search(msg):
         ip = pm.group("ip")
 

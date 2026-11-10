@@ -1,0 +1,46 @@
+services:
+  # ---------------------------------------------------------------------------
+  # nginx：对外唯一入口，承载静态站
+  # 为什么用容器而不是宿主机直接装 nginx：
+  #   1. 宿主机保持干净，出问题 docker rm 重来，不用排查残留配置
+  #   2. 日志用 volume 挂到宿主机，容器删了数据还在
+  #   3. 以后加靶场/工具箱，都在同一个 compose 里加一个 service 就行
+  # ---------------------------------------------------------------------------
+  web:
+    image: nginx:1.27-alpine
+    container_name: hp-web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./site:/usr/share/nginx/html:ro          # 站点文件，只读挂载，容器内改不了
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./logs/nginx:/var/log/nginx              # 日志留在宿主机
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ---------------------------------------------------------------------------
+  # 假登录页：PHP 只做一件事——把收到的账号密码写进日志
+  # 安全设计：
+  #   * 不连数据库，所以收到的 SQL 注入载荷不会真的执行
+  #   * 不读文件，所以路径穿越拿不到东西
+  #   * 密码只存 SHA-256 前 16 位，避免把别人的真实口令明文留在磁盘上
+  #     （这是伦理红线：你收集的是攻击样本，不是别人的凭据）
+  # ---------------------------------------------------------------------------
+  login:
+    image: php:8.3-fpm-alpine
+    container_name: hp-login
+    restart: unless-stopped
+    volumes:
+      - ./site:/var/www/html:ro
+      - ./logs/login:/var/log/login
+    # 不映射端口：只由 nginx 通过内部网络访问，公网接触不到 PHP 本身
+    networks:
+      - default
+
+networks:
+  default:
+    name: honeypot-net

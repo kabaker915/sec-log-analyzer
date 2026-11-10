@@ -183,6 +183,14 @@ th{{background:#F1EFE8;font-weight:500}}
 pre.raw{{background:#F1EFE8;padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-all}}
 .ai{{background:#E6F1FB;border-left:3px solid #378ADD;padding:10px;font-size:13px;white-space:pre-wrap;border-radius:0 6px 6px 0}}
 ul{{font-size:13px;color:#5F5E5A}}
+/* 打印/导出 PDF：去掉外边距，条目不要从中间断开 */
+@media print{{
+  @page{{margin:16mm 14mm}}
+  body{{max-width:none;margin:0;padding:0}}
+  .item,.ai,pre.raw{{break-inside:avoid;page-break-inside:avoid}}
+  h2{{break-after:avoid;page-break-after:avoid}}
+  tr{{break-inside:avoid}}
+}}
 </style></head><body>
 <h1>Web 日志安全分析报告</h1>
 <p style="color:#888780;font-size:13px">源文件：{esc(result.filename)}</p>
