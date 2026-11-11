@@ -38,7 +38,7 @@ from pathlib import Path
 from .config import Config
 from .detector import Detector
 from .models import Finding, LogEntry, Severity
-from .parser import LogParser, decode_bytes
+from .parser import LogParser, decode_bytes, is_syslog_shaped
 
 
 @dataclass
@@ -49,6 +49,13 @@ class WatcherStats:
     lines_read: int = 0
     entries_parsed: int = 0
     parse_errors: int = 0
+    # 能识别成 syslog、但压根不含 IP 的行（CRON、systemd-logind、内核消息）。
+    # 和 parse_errors 必须分开统计，理由和离线版一样：
+    # 一台普通服务器的 auth.log 里这类行占七成以上，
+    # 混进"解析失败"会让面板天天报 71% 的失败率，看的人第一反应是工具坏了。
+    # 同一个错误在两个地方各犯一次，说明这类问题要从结构上避免 ——
+    # 现在两处都调用 parser.is_syslog_shaped()，判断逻辑只有一份。
+    skipped_no_ip: int = 0
     findings_total: int = 0
     suppressed_total: int = 0
     last_event_ts: datetime | None = None
@@ -62,6 +69,7 @@ class WatcherStats:
             "lines_read": self.lines_read,
             "entries_parsed": self.entries_parsed,
             "parse_errors": self.parse_errors,
+            "skipped_no_ip": self.skipped_no_ip,
             "findings_total": self.findings_total,
             "suppressed_total": self.suppressed_total,
             "last_event_ts": (
@@ -290,7 +298,12 @@ class LogWatcher:
                 self.stats.lines_read += 1
                 entry = self.parser.parse_line(line)
                 if entry is None:
-                    self.stats.parse_errors += 1
+                    # 和离线版保持同一口径：结构合法但没 IP 的行单独计数，
+                    # 只有真正不认识的格式才算解析失败。
+                    if is_syslog_shaped(line):
+                        self.stats.skipped_no_ip += 1
+                    else:
+                        self.stats.parse_errors += 1
                     continue
                 self.stats.entries_parsed += 1
                 if entry.ts and (

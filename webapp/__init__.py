@@ -76,7 +76,8 @@ def _load_credentials() -> tuple[str, str]:
 
 
 def create_app(log_paths: list[str] | None = None, *,
-               dry_run: bool = True, start_watcher: bool = True) -> Flask:
+               dry_run: bool = True, start_watcher: bool = True,
+               from_start: bool = False) -> Flask:
     # 模板和静态资源放在项目根目录的 templates/ static/，
     # 不放进 webapp/ 里面：这样 engine（sec_log_analyzer）和界面完全分离，
     # 前者零依赖、能被命令行和测试直接复用，不会被迫牵扯 webapp 的包结构。
@@ -381,7 +382,10 @@ def create_app(log_paths: list[str] | None = None, *,
 
     # ------------------------------------------------------------ 后台线程
     if start_watcher and log_paths:
-        watcher = LogWatcher(log_paths, Config.from_env())
+        # from_start=True 是为了演示：默认从文件末尾开始读（生产环境重启后
+        # 不该把历史告警重放一遍），但演示时要立刻看到已有内容，
+        # 否则打开页面一片空白，看着像坏了。
+        watcher = LogWatcher(log_paths, Config.from_env(), from_start=from_start)
         state.watcher = watcher
 
         def _run():

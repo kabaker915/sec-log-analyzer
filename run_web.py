@@ -28,6 +28,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="生效模式：真正写 nginx deny 并重载。不加为演练模式")
     ap.add_argument("--no-watch", action="store_true",
                     help="不启动日志跟随（只看已有数据，调试界面用）")
+    ap.add_argument("--from-start", action="store_true",
+                    help="从文件开头读。演示时必须加，否则面板会是空的")
     args = ap.parse_args(argv)
 
     if args.host not in ("127.0.0.1", "localhost", "::1"):
@@ -42,6 +44,7 @@ def main(argv: list[str] | None = None) -> int:
         args.log,
         dry_run=not args.live,
         start_watcher=not args.no_watch,
+        from_start=args.from_start,
     )
 
     # 抹掉 Werkzeug 开发服务器自己加的 Server 头。
