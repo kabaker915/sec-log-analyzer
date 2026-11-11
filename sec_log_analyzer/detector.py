@@ -54,6 +54,38 @@ class Detector:
         )
         return findings
 
+    def detect_behavior_only(self, entries: list[LogEntry]) -> list[Finding]:
+        """只跑行为检测，跳过内容检测。
+
+        专供实时模式用。实时循环里内容检测已经按条跑过了——
+        每条日志进来时立刻判一次，结果已经推送出去。
+        在这里对着整段历史再把内容规则跑一遍，产出会被调用方丢掉，
+        纯属浪费 CPU。
+
+        实测：缓冲区 20000 条时，完整 detect 约 717ms，
+        其中内容检测占 152ms，占比 21%。在 2 核机器上这是每秒都在烧的空转。
+
+        注意这个方法存在的前提是"内容检测是无状态的"。
+        一旦某条内容规则需要看历史（比如"同一 payload 在 5 分钟内出现 3 次"），
+        它就必须移进这份名单，否则实时模式下会永远不触发。
+        """
+        findings: list[Finding] = []
+        findings += self._detect_scanner_ua(entries)
+        findings += self._detect_directory_scan(entries)
+        findings += self._detect_protocol_error_burst(entries)
+        findings += self._detect_distributed_scan(entries)
+        findings += self._detect_ssh_brute(entries)
+
+        findings.sort(
+            key=lambda f: (
+                _SEVERITY_ORDER.index(f.severity),
+                f.score,
+                f.ts or datetime.min,
+            ),
+            reverse=True,
+        )
+        return findings
+
     # ------------------------------------------------------------------
     # 1. 内容检测：加权打分
     # ------------------------------------------------------------------
