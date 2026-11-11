@@ -43,8 +43,20 @@ usermod -aG adm "$APP_USER"
 echo "$APP_USER 已加入 adm 组（可读 /var/log/nginx 与 auth.log）"
 
 # ---------------------------------------------------------------------------
-say "3/6 拉取代码"
-if [ -d "$APP_DIR/.git" ]; then
+say "3/6 准备代码"
+# 三条路径，按可靠性排序：
+#   1. SKIP_FETCH=1 —— 代码已经用 scp 传上来了，直接用。
+#      国内网络下 github.com 和 raw.githubusercontent.com 经常不通，
+#      依赖它会让部署在第一步就卡死。这是最可靠的方式。
+#   2. 已有 .git —— 从远端更新
+#   3. 都没有 —— 尝试克隆（能不能成功看网络）
+if [ "${SKIP_FETCH:-0}" = "1" ]; then
+    if [ ! -f "$APP_DIR/run_web.py" ]; then
+        echo "SKIP_FETCH=1 但 $APP_DIR 里没有代码，请先解压源码包" >&2
+        exit 1
+    fi
+    echo "跳过拉取，使用 $APP_DIR 里已有的代码"
+elif [ -d "$APP_DIR/.git" ]; then
     git -C "$APP_DIR" fetch --quiet origin main
     git -C "$APP_DIR" reset --hard --quiet origin/main
     echo "已更新到最新 main"
