@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日志安全控制台</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <strong>日志安全控制台</strong>
+    {% if dry_run %}
+    <span class="badge badge-warn" title="封禁只记录不生效，便于演示与演练">演练模式</span>
+    {% else %}
+    <span class="badge badge-danger">生效模式</span>
+    {% endif %}
+  </div>
+  <div class="topbar-right">
+    <span class="muted">{{ user }}</span>
+    <form method="post" action="{{ url_for('logout') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn-ghost">退出</button>
+    </form>
+  </div>
+</header>
+
+<main class="layout">
+
+  <section class="cards" id="cards">
+    <div class="card"><span class="card-label">已读行数</span><strong id="s-lines">0</strong></div>
+    <div class="card"><span class="card-label">告警总数</span><strong id="s-findings">0</strong></div>
+    <div class="card"><span class="card-label">抑制告警</span><strong id="s-suppressed">0</strong></div>
+    <div class="card"><span class="card-label">缓冲条目</span><strong id="s-buffer">0</strong></div>
+    <div class="card"><span class="card-label">当前封禁</span><strong id="s-bans">0</strong></div>
+    <div class="card"><span class="card-label">运行时长</span><strong id="s-uptime">-</strong></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>实时告警</h2>
+      <div class="panel-tools">
+        <label class="muted" for="sev-filter">等级</label>
+        <select id="sev-filter">
+          <option value="">全部</option>
+          <option value="medium">中危以上</option>
+          <option value="high">高危以上</option>
+          <option value="critical">仅严重</option>
+        </select>
+        <button id="btn-clear" class="btn-ghost" type="button">清屏</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th class="col-time">时间</th>
+            <th class="col-sev">等级</th>
+            <th class="col-ip">来源 IP</th>
+            <th class="col-cat">类型</th>
+            <th>判定依据</th>
+            <th class="col-act">操作</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="empty">等待新事件…（保持此页面打开即可持续接收）</p>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>封禁列表</h2>
+      <span class="muted" id="ban-mode"></span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-ip">IP</th>
+            <th class="col-expire">到期时间</th>
+            <th>原因</th>
+            <th class="col-who">操作人</th>
+            <th class="col-act">操作</th>
+          </tr>
+        </thead>
+        <tbody id="ban-rows"></tbody>
+      </table>
+    </div>
+    <p class="empty" id="ban-empty">暂无封禁记录</p>
+  </section>
+
+</main>
+
+{# CSRF token 从 data 属性交给脚本，而不是内联 <script> 里写 JSON。
+   原因：CSP 禁止内联脚本后，任何形如 <script>var t="..."</script> 的写法都会失效，
+   而 data-* 属性不受 CSP 约束，是最省事也最安全的传递方式。 #}
+<div id="app-config"
+     data-csrf="{{ csrf_token }}"
+     data-dry-run="{{ '1' if dry_run else '0' }}"></div>
+
+<script src="{{ url_for('static', filename='app.js') }}" nonce="{{ nonce }}"></script>
+</body>
+</html>

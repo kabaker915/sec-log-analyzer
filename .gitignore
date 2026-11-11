@@ -37,3 +37,12 @@ real_*.log
 *.ipmap
 .ipmap
 
+# 控制台运行时数据：审计日志记着谁封了哪个 IP，deny.conf 里是真实地址
+data/
+*.jsonl
+# 例外：samples 里的脱敏样例可以入库
+!samples/*.jsonl
+
+# 测试与演示的中间产物
+reports/web/
+

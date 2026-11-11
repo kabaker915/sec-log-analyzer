@@ -1,6 +1,13 @@
-# 核心引擎（解析 / 规则 / 检测 / 报告）只依赖 Python 标准库
-# 不需要安装任何东西就能跑命令行版：
+# 核心引擎（解析 / 规则 / 检测 / 报告 / 实时监控 / OCSF 导出）
+# 只依赖 Python 标准库，不装任何东西就能跑命令行版：
 #   python -m sec_log_analyzer.cli access.log
+#   python -m sec_log_analyzer.cli --tail /var/log/nginx/access.log
 
-# 只有 Streamlit 网页界面需要这个
-streamlit>=1.30
+# Web 控制台需要 Flask（引擎本身不需要）。建议装在虚拟环境里：
+#   python -m venv .venv
+#   .venv/bin/pip install -r requirements.txt
+flask>=3.0
+
+# 旧的 Streamlit 界面（app.py），能快速看报告。
+# 主力界面已经是 Flask 控制台，不需要可以不装。
+# streamlit>=1.30

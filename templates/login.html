@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 · 日志安全控制台</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body class="login-body">
+
+<main class="login-card">
+  <h1>日志安全控制台</h1>
+  <p class="muted">规则引擎 + 行为检测 + 实时告警</p>
+
+  {# 错误信息由服务端渲染。Jinja2 默认自动转义，所以这里不需要手写 escape。 #}
+  {% if error %}
+  <div class="alert" role="alert">{{ error }}</div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('login') }}" autocomplete="off">
+    {# CSRF token 必须随表单提交。没有它，任何第三方页面都能替用户发这个登录请求。 #}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+    <label for="username">用户名</label>
+    <input id="username" name="username" type="text" required maxlength="64"
+           autocomplete="username" spellcheck="false">
+
+    <label for="password">密码</label>
+    <input id="password" name="password" type="password" required
+           autocomplete="current-password">
+
+    <button type="submit">登录</button>
+  </form>
+
+  <p class="hint">连续输错会被锁定。会话闲置 8 小时自动失效。</p>
+</main>
+
+</body>
+</html>

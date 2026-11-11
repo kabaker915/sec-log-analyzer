@@ -1,0 +1,279 @@
+/* 全部样式集中在这里，页面里没有一个 style 属性。
+ *
+ * 这不是洁癖，是 CSP 的要求：style-src 'self' 会拦掉内联 style 属性
+ * 和 <style> 块。想用内联样式就得加 'unsafe-inline'，
+ * 而一旦开了 'unsafe-inline'，CSS 注入就又成为一条可用的攻击路径
+ * （比如通过注入样式把"封禁"按钮盖在别的位置上，诱导点击）。
+ * 少写一点样式代码，换掉一整类风险，很划算。
+ */
+
+:root {
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --border: #e3e5e8;
+  --text: #1f2328;
+  --muted: #6b7280;
+  --accent: #185fa5;
+  --danger: #a32d2d;
+  --warn: #854f0b;
+  --ok: #0f6e56;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.55 -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+/* ------------------------------------------------------------ 登录页 */
+.login-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.login-card {
+  width: 340px;
+  padding: 32px 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.login-card h1 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.login-card .muted { margin: 0 0 22px; font-size: 12px; }
+.login-card .hint { margin: 18px 0 0; font-size: 12px; color: var(--muted); }
+
+label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  font-size: 14px;
+  background: #fff;
+  color: var(--text);
+}
+
+input:focus,
+select:focus,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.login-card button[type="submit"] {
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.login-card button[type="submit"]:hover { background: #0c447c; }
+
+.alert {
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: #fcebeb;
+  border: 1px solid #f7c1c1;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------ 主布局 */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.topbar-right { display: flex; align-items: center; gap: 14px; }
+.inline-form { display: inline; margin: 0; }
+
+.layout {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 20px 24px 48px;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.badge-warn { background: #faeeda; color: var(--warn); }
+.badge-danger { background: #fcebeb; color: var(--danger); }
+
+.muted { color: var(--muted); font-size: 12px; }
+
+/* ------------------------------------------------------------ 卡片 */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.card-label { font-size: 12px; color: var(--muted); }
+.card strong { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------ 面板 */
+.panel {
+  margin-bottom: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-head h2 { margin: 0; font-size: 14px; font-weight: 500; }
+.panel-tools { display: flex; align-items: center; gap: 10px; }
+
+select {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.table-wrap { max-height: 420px; overflow: auto; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+th {
+  position: sticky;
+  top: 0;
+  padding: 9px 12px;
+  background: #fafbfc;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+td {
+  padding: 9px 12px;
+  border-bottom: 1px solid #f0f1f3;
+  vertical-align: top;
+}
+
+tbody tr:hover { background: #fafbfc; }
+
+.mono { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+
+.reason {
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
+  cursor: help;
+}
+
+.col-time { width: 96px; }
+.col-sev { width: 74px; }
+.col-ip { width: 140px; }
+.col-cat { width: 120px; }
+.col-act { width: 88px; }
+.col-expire { width: 132px; }
+.col-who { width: 86px; }
+
+/* 等级色：按国内习惯，红=严重，不放绿 */
+.sev {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.sev-critical { background: #fcebeb; color: #791f1f; }
+.sev-high { background: #faeeda; color: #854f0b; }
+.sev-medium { background: #e6f1fb; color: #0c447c; }
+.sev-low { background: #f1efe8; color: #5f5e5a; }
+
+/* ------------------------------------------------------------ 按钮 */
+button { font: inherit; }
+
+.btn-ghost {
+  padding: 5px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-ghost:hover { background: #f3f4f6; }
+
+.btn-danger {
+  padding: 4px 12px;
+  border: 1px solid #f09595;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--danger);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-danger:hover { background: #fcebeb; }
+
+.empty {
+  margin: 0;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
