@@ -51,3 +51,6 @@ reports/web/
 labs/*.log
 labs/site.out
 labs/*.out
+
+# 从服务器拉回的真实日志归档：含真实公网 IP，绝不入库
+archive/
