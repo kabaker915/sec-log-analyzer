@@ -98,6 +98,16 @@
   async function refreshStats() {
     try {
       const r = await fetch("/api/stats", { credentials: "same-origin" });
+      // 会话失效（闲置 8 小时、服务重启换了 secret_key、或者浏览器里
+      // 残留的是另一个实例的 cookie）时必须跳回登录页。
+      //
+      // 不处理的话会变成：页面看着还在，数字却永远不动，
+      // SSE 每 3 秒重连一次、每次都 401，服务端日志被刷屏。
+      // 用户不会意识到"我掉线了"，只会觉得"这工具坏了"。
+      if (r.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       if (!r.ok) return;
       const d = await r.json();
       const w = d.watcher || {};
