@@ -465,12 +465,23 @@ class LogWatcher:
 
             if time.monotonic() - last_gc > 600:
                 self._throttle.gc()
-                # _emitted 也要清理，否则跑一周会随攻击 IP 数量无限增长。
-                # 一个被全网扫过的公网 IP，一天能见几千个来源。
-                now = time.monotonic()
-                dead = [k for k, t in self._emitted.items() if now - t > 3600]
-                for k in dead:
-                    self._emitted.pop(k, None)
+                # _emitted 只按数量裁剪，**不按时间**。
+                #
+                # 这里踩过一次真实的坑：原本按「超过 3600 秒」清理，
+                # 结果在凌晨的安静时段（几个来源之间隔很久）出现了重复告警 ——
+                # 同一个扫描器 04:14 报一次，05:18 又报一次，事件时间完全相同。
+                #
+                # 根因：_recent_entries 的时间基准是「缓冲区里最新事件的时间」，
+                # 不是当前时间。安静时段没有新事件，这个基准就不动，
+                # 04:14 的事件会一直留在窗口里被反复检测。
+                # 而 _emitted 按首次出现时间 3600 秒后清理，
+                # 一清理，同一批事件立刻又变成"新告警"。
+                #
+                # 所以寿命必须由缓冲区容量决定，不能由墙钟时间决定。
+                # 键很小（规则+IP+时间戳），留 20 万个也只占几 MB。
+                if len(self._emitted) > 200_000:
+                    for k in list(self._emitted)[:50_000]:
+                        self._emitted.pop(k, None)
                 last_gc = time.monotonic()
 
             stop_event.wait(interval)
