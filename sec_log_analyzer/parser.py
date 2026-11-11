@@ -201,6 +201,20 @@ def parse_auth_line(line: str, now: datetime | None = None) -> LogEntry | None:
     )
 
 
+def is_syslog_shaped(line: str) -> bool:
+    """这行像不像 syslog？用于区分"格式不认识"和"格式认识但没 IP"。
+
+    为什么需要这个判断：
+    auth.log 里大量是 CRON、systemd-logind、sudo 这类行，结构完全合法，
+    只是不含任何 IP。把它们的丢掉记成"解析失败"，会让失败率虚高。
+    用一台全新 ECS 的 auth.log 实测：584 行里 417 行被判失败，
+    但其中 400 多行都是这类无关行，真正的格式错误是 0 行。
+
+    判断只看前缀时间戳和进程名，不验证语义 —— 这里只需要一个粗筛。
+    """
+    return bool(SYSLOG_LINE.match(line))
+
+
 class LogParser:
     """统一的入口：喂行，吐结构化条目。
 
@@ -211,6 +225,7 @@ class LogParser:
     def __init__(self, config, now: datetime | None = None) -> None:
         self.config = config
         self.now = now
+        self.skipped_no_ip = 0
 
     def parse_line(self, line: str) -> LogEntry | None:
         line = line.strip()
@@ -233,8 +248,14 @@ class LogParser:
             if not stripped:
                 continue
             entry = self.parse_line(stripped)
-            if entry is None:
-                errors.append(f"第 {lineno} 行无法识别: {stripped[:120]}")
-            else:
+            if entry is not None:
                 entries.append(entry)
+                continue
+            # 走到这里有两种可能，必须分开记：
+            #   1. 结构合法但没 IP —— 与安全分析无关，跳过即可（CRON/内核/桌面会话）
+            #   2. 结构就不认识 —— 这才是真问题，可能是新格式或编码损坏，要报警
+            if is_syslog_shaped(stripped):
+                self.skipped_no_ip += 1
+            else:
+                errors.append(f"第 {lineno} 行无法识别: {stripped[:120]}")
         return entries, errors

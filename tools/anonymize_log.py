@@ -71,6 +71,29 @@ PRIVATE_PREFIXES = ("10.", "192.168.", "172.16.", "172.17.", "172.18.",
                     "172.19.", "172.2", "172.30.", "172.31.")
 
 
+# 云主机名同样会暴露身份，而且比 IP 更隐蔽——没人会想到去检查主机名。
+#
+# 阿里云 ECS 默认主机名形如 iZxxxxxxxxxxxxxxxxxxxxZ（iZ + 实例 ID + Z），
+# 中间那串字母数字就是实例 ID 本身。
+# 拿着实例 ID 能做什么：登录控制台直接定位到这台机器（同账号或被授权的子账号），
+# 提交工单、报障、申请迁移时都以它为主键。也就是说这不是「一条线索」，
+# 而是这台机器的身份证号。
+# AWS 的 ip-172-31-8-9 形态虽然主要暴露内网地址，但配合地域规则也能定位。
+#
+# 这处是脱敏流程里最容易被漏掉的：一开始只盯着 IP，
+# 直到 auth.log 里每一个进程都带着 iZ7xv... 才被发现。
+CLOUD_HOSTNAME = re.compile(
+    r"\biZ[0-9a-zA-Z]{8,}\b"                       # 阿里云 ECS
+    r"|\bip-(?:\d{1,3}-){3}\d{1,3}\b"              # AWS EC2
+)
+
+
+def fake_host(name: str, salt: str = "") -> str:
+    """主机名换成稳定假名。保留「同一个主机」这个事实，抹掉具体身份。"""
+    h = hashlib.sha256((salt + name).encode()).hexdigest()[:8]
+    return f"srv-{h}"
+
+
 def _is_private(ip: str) -> bool:
     return ip.startswith(PRIVATE_PREFIXES)
 
@@ -115,6 +138,17 @@ def anonymize_text(text: str, mapping: dict[str, str] | None = None,
         return mapping[ip]
 
     out = IPV4.sub(_sub, text)
+
+    # 主机名单独走一遍。用同一张 mapping 表（虽然键不会和 IP 撞），
+    # 这样调用方只需要接管一张表。
+    def _sub_host(m: re.Match) -> str:
+        name = m.group(0)
+        if name not in mapping:
+            mapping[name] = fake_host(name, salt=salt)
+        return mapping[name]
+
+    out = CLOUD_HOSTNAME.sub(_sub_host, out)
+
     if skipped:
         # 不静默跳过：让人知道有哪些「看起来像 IP 的版本号」被保护了
         print(f"[提示] 识别为版本号、保持原样 {len(skipped)} 处："
@@ -158,7 +192,9 @@ def main(argv: list[str] | None = None) -> int:
         anonymize_file(src, dst, mapping, style=args.style, salt=args.salt)
         print(f"[完成] {src} -> {dst}")
 
-    print(f"\n共替换 {len(mapping)} 个 IP")
+    ip_count = sum(1 for k in mapping if IPV4.fullmatch(k))
+    host_count = len(mapping) - ip_count
+    print(f"\n共替换 {ip_count} 个 IP、{host_count} 个云主机名")
     for real, fake in list(mapping.items())[:20]:
         print(f"  {real:>16}  ->  {fake}")
     if len(mapping) > 20:

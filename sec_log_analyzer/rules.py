@@ -252,12 +252,51 @@ RULES: tuple[Rule, ...] = (
     ),
 )
 
-# UA 指纹：扫描器通常懒得改 UA，这是成本最低的一层识别
-SCANNER_UA = re.compile(
-    r"(sqlmap|nikto|nmap|masscan|gobuster|dirbuster|dirb|wfuzz|ffuf|nuclei"
-    r"|acunetix|awvs|appscan|netsparker|wpscan|xray|burpsuite|hydra|medusa|patator)",
-    re.I,
+# UA 指纹：扫描器通常懒得改 UA，这是成本最低的一层识别。
+#
+# 分两组，因为这两组的"确定性"不一样，混在一起会讲不清误报率：
+#
+#   组 A —— 攻击工具：出现即意图明确。sqlmap 不会被人装来上网。
+#   组 B —— 测绘/爬取基础设施：从公网全量扫，被扫到不代表针对你。
+#           但不代表可以忽略：它们会先发现你的暴露面，再"卖"给下一个动手的人。
+#           某天某个测绘 IP 的扫描结果里出现了你的后台入口，
+#           两周后就有针对性的爆破上来。这是有因果链的，只是有时间差。
+#
+# 组 A 与组 B 在本项目里都只判 medium，因为默认日志没被入侵。
+# 真正的区分留给报告里的文字说明，不靠等级硬掰。
+_SCANNER_TOOLS = (
+    r"sqlmap|nikto|nmap|masscan|gobuster|dirbuster|dirb|wfuzz|ffuf|nuclei"
+    r"|acunetix|awvs|appscan|netsparker|wpscan|xray|burpsuite|hydra|medusa|patator"
+    r"|zgrab|zmap|fscan|goby|whatweb|joomscan|droopescan|wpscan"
 )
+
+# 2026-11-10 在自有服务器上实测捕获到前两个，其余是同期公开披露的测绘指纹。
+# 加这一批的直接原因：当时日志里两条 400 请求，UA 分别是 FlowIQLabsBot 和
+# ForestEngine，工具一条都没报——词表不全，再好的匹配逻辑也白搭。
+_SCANNER_MAPPING = (
+    r"flowiqlabsbot|forestengine|censysinspect|censys|netsystemsresearch"
+    r"|internetmeasurement|expanse|shodan|binaryedge|leakix|paloaltonetworks"
+    r"|rndr|stretchoid|cyberpanel|netscaler"
+)
+
+SCANNER_UA = re.compile(rf"({_SCANNER_TOOLS}|{_SCANNER_MAPPING})", re.I)
+
+# 用于在报告里给人看的一句话解释：命中词 → 这是什么东西
+SCANNER_UA_NOTE: dict[str, str] = {
+    "flowiqlabsbot": "测绘类爬虫，批量探测公网 HTTP 服务指纹",
+    "forestengine": "测绘/资产发现引擎，行为接近爬虫但目标明确",
+    "censys": "Censys 的测绘探针，全公网周期扫描",
+    "censysinspect": "Censys 的测绘探针，全公网周期扫描",
+    "shodan": "Shodan 测绘节点",
+    "zgrab": "ZMap 项目的应用层探测器，常与 masscan 配合使用",
+    "zmap": "全互联网段扫描器，几分钟扫完整个 IPv4",
+    "nuclei": "模板化漏洞扫描器，按 CVE 批量打",
+    "masscan": "高速端口扫描器",
+    "sqlmap": "SQL 注入自动化工具",
+    "gobuster": "目录/子域爆破工具",
+    "nmap": "端口与服务识别",
+    "nikto": "Web 服务器漏洞扫描",
+}
 
 # 爬虫白名单：只用于"降噪"，不作为安全放行依据（UA 可伪造）
 CRAWLER_UA = re.compile(
@@ -278,5 +317,7 @@ CATEGORY_SEVERITY: dict[str, str] = {
     "SSRF": "high",
     "扫描器指纹": "medium",
     "目录扫描": "medium",
+    "协议误用探测": "medium",
+    "分布式扫描": "medium",
     "SSH爆破": "high",
 }

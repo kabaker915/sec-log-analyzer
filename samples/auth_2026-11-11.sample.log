@@ -1,0 +1,584 @@
+Oct 16 15:56:07 localhost sshd[1280]: Exiting on signal 15
+Nov 10 22:31:03 srv-fb54487c sshd[888]: Server listening on 0.0.0.0 port 22.
+Nov 10 22:31:03 srv-fb54487c sshd[888]: Server listening on :: port 22.
+Nov 10 22:31:03 srv-fb54487c systemd-logind[787]: New seat seat0.
+Nov 10 22:31:03 srv-fb54487c systemd-logind[787]: Watching system buttons on /dev/input/event0 (Power Button)
+Nov 10 22:31:03 srv-fb54487c systemd-logind[787]: Watching system buttons on /dev/input/event1 (Sleep Button)
+Nov 10 22:31:03 srv-fb54487c systemd-logind[787]: Watching system buttons on /dev/input/event2 (AT Translated Set 2 keyboard)
+Nov 10 22:31:52 srv-fb54487c sshd[888]: Received signal 15; terminating.
+Nov 10 22:31:52 srv-fb54487c sshd[1612]: Server listening on 0.0.0.0 port 22.
+Nov 10 22:31:52 srv-fb54487c sshd[1612]: Server listening on :: port 22.
+Nov 10 22:31:56 srv-fb54487c sshd[1658]: Accepted publickey for root from 192.0.2.45 port 24398 ssh2: ED25519 SHA256:h9Rpkf+MKjhGiQYijRMJyqD6ZmwmO33QpOhmy8hFmAs
+Nov 10 22:31:56 srv-fb54487c sshd[1658]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:31:56 srv-fb54487c systemd-logind[787]: New session 1 of user root.
+Nov 10 22:31:56 srv-fb54487c systemd: pam_unix(systemd-user:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:32:31 srv-fb54487c groupadd[6516]: group added to /etc/group: name=docker, GID=999
+Nov 10 22:32:31 srv-fb54487c groupadd[6516]: group added to /etc/gshadow: name=docker
+Nov 10 22:32:31 srv-fb54487c groupadd[6516]: new group: name=docker, GID=999
+Nov 10 22:32:37 srv-fb54487c sudo:     root : PWD=/root/workspace/exec-d33ada57030e4b359b05.t0004.i0001.t0001.i0001.t0001 ; USER=root ; COMMAND=/usr/bin/mkdir -p /etc/docker
+Nov 10 22:32:37 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:32:37 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:32:37 srv-fb54487c sudo:     root : PWD=/root/workspace/exec-d33ada57030e4b359b05.t0004.i0001.t0001.i0001.t0001 ; USER=root ; COMMAND=/usr/bin/tee /etc/docker/daemon.json
+Nov 10 22:32:37 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:32:37 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:32:37 srv-fb54487c sudo:     root : PWD=/root/workspace/exec-d33ada57030e4b359b05.t0004.i0001.t0001.i0001.t0001 ; USER=root ; COMMAND=/usr/bin/systemctl daemon-reload
+Nov 10 22:32:37 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:32:37 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:32:37 srv-fb54487c sudo:     root : PWD=/root/workspace/exec-d33ada57030e4b359b05.t0004.i0001.t0001.i0001.t0001 ; USER=root ; COMMAND=/usr/bin/systemctl restart docker
+Nov 10 22:32:37 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:32:38 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:32:38 srv-fb54487c sudo:     root : PWD=/root/workspace/exec-d33ada57030e4b359b05.t0004.i0001.t0001.i0001.t0001 ; USER=root ; COMMAND=/usr/bin/systemctl start docker
+Nov 10 22:32:38 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:32:38 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:32:38 srv-fb54487c sudo:     root : PWD=/root/workspace/exec-d33ada57030e4b359b05.t0004.i0001.t0001.i0001.t0001 ; USER=root ; COMMAND=/usr/bin/systemctl enable docker
+Nov 10 22:32:38 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:32:39 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:35:01 srv-fb54487c CRON[7308]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:35:01 srv-fb54487c CRON[7308]: pam_unix(cron:session): session closed for user root
+Nov 10 22:38:18 srv-fb54487c sshd[7321]: Connection reset by authenticating user root 198.51.100.212 port 7832 [preauth]
+Nov 10 22:39:13 srv-fb54487c sshd[7323]: error: Received disconnect from 203.0.113.140 port 40394:10:  [preauth]
+Nov 10 22:39:13 srv-fb54487c sshd[7323]: Disconnected from authenticating user root 203.0.113.140 port 40394 [preauth]
+Nov 10 22:39:26 srv-fb54487c sshd[7520]: Accepted publickey for root from 203.0.113.89 port 46589 ssh2: ED25519 SHA256:jo44fjYJbglEXqZ/BIiDCzPm1Ihib9i2EuZ5dV06c7w
+Nov 10 22:39:26 srv-fb54487c sshd[7520]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:39:26 srv-fb54487c systemd-logind[787]: New session 4 of user root.
+Nov 10 22:39:27 srv-fb54487c sshd[7587]: Accepted publickey for root from 198.51.100.22 port 59610 ssh2: ED25519 SHA256:jo44fjYJbglEXqZ/BIiDCzPm1Ihib9i2EuZ5dV06c7w
+Nov 10 22:39:27 srv-fb54487c sshd[7587]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:39:27 srv-fb54487c systemd-logind[787]: New session 5 of user root.
+Nov 10 22:39:27 srv-fb54487c sshd[7652]: Accepted publickey for root from 198.51.100.22 port 59630 ssh2: ED25519 SHA256:jo44fjYJbglEXqZ/BIiDCzPm1Ihib9i2EuZ5dV06c7w
+Nov 10 22:39:27 srv-fb54487c sshd[7652]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:39:27 srv-fb54487c systemd-logind[787]: New session 6 of user root.
+Nov 10 22:40:09 srv-fb54487c sshd[7587]: pam_unix(sshd:session): session closed for user root
+Nov 10 22:40:09 srv-fb54487c systemd-logind[787]: Session 5 logged out. Waiting for processes to exit.
+Nov 10 22:40:09 srv-fb54487c systemd-logind[787]: Removed session 5.
+Nov 10 22:40:10 srv-fb54487c sudo:     root : TTY=pts/0 ; PWD=/root ; USER=root ; COMMAND=/usr/bin/passwd root
+Nov 10 22:40:10 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by root(uid=0)
+Nov 10 22:40:10 srv-fb54487c sshd[7724]: Accepted publickey for root from 198.51.100.22 port 60292 ssh2: ED25519 SHA256:jo44fjYJbglEXqZ/BIiDCzPm1Ihib9i2EuZ5dV06c7w
+Nov 10 22:40:10 srv-fb54487c sshd[7724]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:40:10 srv-fb54487c systemd-logind[787]: New session 7 of user root.
+Nov 10 22:40:11 srv-fb54487c sshd[7780]: Accepted publickey for root from 198.51.100.22 port 60310 ssh2: ED25519 SHA256:jo44fjYJbglEXqZ/BIiDCzPm1Ihib9i2EuZ5dV06c7w
+Nov 10 22:40:11 srv-fb54487c sshd[7780]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:40:11 srv-fb54487c systemd-logind[787]: New session 8 of user root.
+Nov 10 22:40:11 srv-fb54487c sshd[7724]: pam_unix(sshd:session): session closed for user root
+Nov 10 22:40:11 srv-fb54487c systemd-logind[787]: Session 7 logged out. Waiting for processes to exit.
+Nov 10 22:40:11 srv-fb54487c systemd-logind[787]: Removed session 7.
+Nov 10 22:40:12 srv-fb54487c sshd[7837]: Accepted publickey for root from 198.51.100.22 port 60332 ssh2: ED25519 SHA256:jo44fjYJbglEXqZ/BIiDCzPm1Ihib9i2EuZ5dV06c7w
+Nov 10 22:40:12 srv-fb54487c sshd[7837]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:40:12 srv-fb54487c systemd-logind[787]: New session 9 of user root.
+Nov 10 22:40:12 srv-fb54487c sshd[7780]: pam_unix(sshd:session): session closed for user root
+Nov 10 22:40:12 srv-fb54487c systemd-logind[787]: Session 8 logged out. Waiting for processes to exit.
+Nov 10 22:40:12 srv-fb54487c systemd-logind[787]: Removed session 8.
+Nov 10 22:40:14 srv-fb54487c sshd[7837]: pam_unix(sshd:session): session closed for user root
+Nov 10 22:40:14 srv-fb54487c systemd-logind[787]: Session 9 logged out. Waiting for processes to exit.
+Nov 10 22:40:14 srv-fb54487c systemd-logind[787]: Removed session 9.
+Nov 10 22:40:41 srv-fb54487c passwd[7723]: pam_unix(passwd:chauthtok): password changed for root
+Nov 10 22:40:41 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:40:54 srv-fb54487c sshd[7893]: error: Received disconnect from 198.51.100.22 port 60994:10:  [preauth]
+Nov 10 22:40:54 srv-fb54487c sshd[7893]: Disconnected from authenticating user root 198.51.100.22 port 60994 [preauth]
+Nov 10 22:40:55 srv-fb54487c sshd[7899]: error: Received disconnect from 198.51.100.22 port 20020:10:  [preauth]
+Nov 10 22:40:55 srv-fb54487c sshd[7899]: Disconnected from authenticating user root 198.51.100.22 port 20020 [preauth]
+Nov 10 22:40:56 srv-fb54487c sudo:     root : TTY=pts/0 ; PWD=/root ; USER=root ; COMMAND=/usr/bin/sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+Nov 10 22:40:56 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by root(uid=0)
+Nov 10 22:40:56 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:40:56 srv-fb54487c sudo:     root : TTY=pts/0 ; PWD=/root ; USER=root ; COMMAND=/usr/bin/sed -i 's/^#*PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+Nov 10 22:40:56 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by root(uid=0)
+Nov 10 22:40:56 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:40:56 srv-fb54487c sudo:     root : TTY=pts/0 ; PWD=/root ; USER=root ; COMMAND=/usr/bin/systemctl restart ssh
+Nov 10 22:40:56 srv-fb54487c sudo: pam_unix(sudo:session): session opened for user root(uid=0) by root(uid=0)
+Nov 10 22:40:56 srv-fb54487c sshd[1612]: Received signal 15; terminating.
+Nov 10 22:40:56 srv-fb54487c sshd[7916]: Server listening on 0.0.0.0 port 22.
+Nov 10 22:40:56 srv-fb54487c sshd[7916]: Server listening on :: port 22.
+Nov 10 22:40:56 srv-fb54487c sudo: pam_unix(sudo:session): session closed for user root
+Nov 10 22:40:57 srv-fb54487c sshd[7917]: error: Received disconnect from 198.51.100.22 port 20072:10:  [preauth]
+Nov 10 22:40:57 srv-fb54487c sshd[7917]: Disconnected from authenticating user root 198.51.100.22 port 20072 [preauth]
+Nov 10 22:40:58 srv-fb54487c sshd[7923]: error: Received disconnect from 198.51.100.22 port 20082:10:  [preauth]
+Nov 10 22:40:58 srv-fb54487c sshd[7923]: Disconnected from authenticating user root 198.51.100.22 port 20082 [preauth]
+Nov 10 22:41:58 srv-fb54487c sshd[1658]: pam_unix(sshd:session): session closed for user root
+Nov 10 22:41:58 srv-fb54487c systemd-logind[787]: Session 1 logged out. Waiting for processes to exit.
+Nov 10 22:41:58 srv-fb54487c systemd-logind[787]: Removed session 1.
+Nov 10 22:44:18 srv-fb54487c sshd[7933]: error: Received disconnect from 198.51.100.22 port 23566:10:  [preauth]
+Nov 10 22:44:18 srv-fb54487c sshd[7933]: Disconnected from authenticating user root 198.51.100.22 port 23566 [preauth]
+Nov 10 22:44:19 srv-fb54487c sshd[7940]: error: Received disconnect from 198.51.100.22 port 23582:10:  [preauth]
+Nov 10 22:44:19 srv-fb54487c sshd[7940]: Disconnected from authenticating user root 198.51.100.22 port 23582 [preauth]
+Nov 10 22:44:20 srv-fb54487c sshd[7946]: error: Received disconnect from 198.51.100.22 port 23598:10:  [preauth]
+Nov 10 22:44:20 srv-fb54487c sshd[7946]: Disconnected from authenticating user root 198.51.100.22 port 23598 [preauth]
+Nov 10 22:44:52 srv-fb54487c passwd[7932]: pam_unix(passwd:chauthtok): password changed for root
+Nov 10 22:45:01 srv-fb54487c CRON[7986]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:45:01 srv-fb54487c CRON[7986]: pam_unix(cron:session): session closed for user root
+Nov 10 22:46:16 srv-fb54487c sshd[7998]: error: Received disconnect from 198.51.100.22 port 25596:10:  [preauth]
+Nov 10 22:46:16 srv-fb54487c sshd[7998]: Disconnected from authenticating user root 198.51.100.22 port 25596 [preauth]
+Nov 10 22:46:17 srv-fb54487c sshd[8004]: error: Received disconnect from 198.51.100.22 port 25616:10:  [preauth]
+Nov 10 22:46:17 srv-fb54487c sshd[8004]: Disconnected from authenticating user root 198.51.100.22 port 25616 [preauth]
+Nov 10 22:46:18 srv-fb54487c sshd[8010]: error: Received disconnect from 198.51.100.22 port 25626:10:  [preauth]
+Nov 10 22:46:18 srv-fb54487c sshd[8010]: Disconnected from authenticating user root 198.51.100.22 port 25626 [preauth]
+Nov 10 22:47:17 srv-fb54487c sshd[8019]: error: Received disconnect from 198.51.100.22 port 26760:10:  [preauth]
+Nov 10 22:47:17 srv-fb54487c sshd[8019]: Disconnected from authenticating user root 198.51.100.22 port 26760 [preauth]
+Nov 10 22:47:18 srv-fb54487c sshd[8025]: error: Received disconnect from 198.51.100.22 port 26782:10:  [preauth]
+Nov 10 22:47:18 srv-fb54487c sshd[8025]: Disconnected from authenticating user root 198.51.100.22 port 26782 [preauth]
+Nov 10 22:47:19 srv-fb54487c sshd[8031]: error: Received disconnect from 198.51.100.22 port 26798:10:  [preauth]
+Nov 10 22:47:19 srv-fb54487c sshd[8031]: Disconnected from authenticating user root 198.51.100.22 port 26798 [preauth]
+Nov 10 22:47:50 srv-fb54487c passwd[8018]: pam_unix(passwd:chauthtok): password changed for root
+Nov 10 22:49:29 srv-fb54487c sshd[7520]: pam_unix(sshd:session): session closed for user root
+Nov 10 22:49:29 srv-fb54487c systemd-logind[787]: Session 4 logged out. Waiting for processes to exit.
+Nov 10 22:49:29 srv-fb54487c systemd-logind[787]: Removed session 4.
+Nov 10 22:50:40 srv-fb54487c sshd[8037]: error: kex_exchange_identification: client sent invalid protocol identifier "GET / HTTP/1.1"
+Nov 10 22:50:40 srv-fb54487c sshd[8037]: banner exchange: Connection from 192.0.2.186 port 51701: invalid format
+Nov 10 22:50:40 srv-fb54487c sshd[8038]: error: kex_exchange_identification: client sent invalid protocol identifier "GET / HTTP/1.1"
+Nov 10 22:50:40 srv-fb54487c sshd[8038]: banner exchange: Connection from 198.51.100.161 port 61578: invalid format
+Nov 10 22:50:42 srv-fb54487c sshd[8040]: error: Received disconnect from 198.51.100.22 port 30190:10:  [preauth]
+Nov 10 22:50:42 srv-fb54487c sshd[8040]: Disconnected from authenticating user root 198.51.100.22 port 30190 [preauth]
+Nov 10 22:50:43 srv-fb54487c sshd[8046]: error: Received disconnect from 198.51.100.22 port 30212:10:  [preauth]
+Nov 10 22:50:43 srv-fb54487c sshd[8046]: Disconnected from authenticating user root 198.51.100.22 port 30212 [preauth]
+Nov 10 22:50:44 srv-fb54487c sshd[8052]: error: Received disconnect from 198.51.100.22 port 30230:10:  [preauth]
+Nov 10 22:50:44 srv-fb54487c sshd[8052]: Disconnected from authenticating user root 198.51.100.22 port 30230 [preauth]
+Nov 10 22:51:03 srv-fb54487c sshd[8059]: Invalid user  from 203.0.113.18 port 52910
+Nov 10 22:51:09 srv-fb54487c sshd[8059]: Connection closed by invalid user  203.0.113.18 port 52910 [preauth]
+Nov 10 22:51:22 srv-fb54487c sshd[8062]: Accepted password for root from 198.51.100.212 port 8563 ssh2
+Nov 10 22:51:22 srv-fb54487c sshd[8062]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:51:22 srv-fb54487c systemd-logind[787]: New session 11 of user root.
+Nov 10 22:52:53 srv-fb54487c sshd[8129]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=203.0.113.18  user=root
+Nov 10 22:52:55 srv-fb54487c sshd[8129]: Failed password for root from 203.0.113.18 port 50796 ssh2
+Nov 10 22:52:55 srv-fb54487c sshd[8129]: Connection closed by authenticating user root 203.0.113.18 port 50796 [preauth]
+Nov 10 22:54:59 srv-fb54487c sshd[7652]: pam_unix(sshd:session): session closed for user root
+Nov 10 22:54:59 srv-fb54487c systemd-logind[787]: Session 6 logged out. Waiting for processes to exit.
+Nov 10 22:54:59 srv-fb54487c systemd-logind[787]: Removed session 6.
+Nov 10 22:55:01 srv-fb54487c CRON[9503]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 22:55:01 srv-fb54487c CRON[9503]: pam_unix(cron:session): session closed for user root
+Nov 10 23:05:01 srv-fb54487c CRON[9577]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:05:01 srv-fb54487c CRON[9577]: pam_unix(cron:session): session closed for user root
+Nov 10 23:05:02 srv-fb54487c sshd[9575]: Accepted password for root from 198.51.100.212 port 31662 ssh2
+Nov 10 23:05:02 srv-fb54487c sshd[9575]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:05:02 srv-fb54487c systemd-logind[787]: New session 14 of user root.
+Nov 10 23:05:03 srv-fb54487c sshd[9575]: Received disconnect from 198.51.100.212 port 31662:11: disconnected by user
+Nov 10 23:05:03 srv-fb54487c sshd[9575]: Disconnected from user root 198.51.100.212 port 31662
+Nov 10 23:05:03 srv-fb54487c sshd[9575]: pam_unix(sshd:session): session closed for user root
+Nov 10 23:05:03 srv-fb54487c systemd-logind[787]: Session 14 logged out. Waiting for processes to exit.
+Nov 10 23:05:03 srv-fb54487c systemd-logind[787]: Removed session 14.
+Nov 10 23:15:01 srv-fb54487c CRON[9640]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:15:01 srv-fb54487c CRON[9640]: pam_unix(cron:session): session closed for user root
+Nov 10 23:17:01 srv-fb54487c CRON[9644]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:17:01 srv-fb54487c CRON[9644]: pam_unix(cron:session): session closed for user root
+Nov 10 23:20:04 srv-fb54487c sshd[9657]: Invalid user  from 198.51.100.213 port 33516
+Nov 10 23:20:04 srv-fb54487c sshd[9657]: Connection closed by invalid user  198.51.100.213 port 33516 [preauth]
+Nov 10 23:20:12 srv-fb54487c sshd[9660]: Invalid user  from 198.51.100.213 port 33518
+Nov 10 23:20:12 srv-fb54487c sshd[9660]: Connection closed by invalid user  198.51.100.213 port 33518 [preauth]
+Nov 10 23:24:25 srv-fb54487c sshd[9670]: Connection reset by authenticating user root 198.51.100.212 port 9328 [preauth]
+Nov 10 23:25:01 srv-fb54487c CRON[9677]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:25:01 srv-fb54487c CRON[9677]: pam_unix(cron:session): session closed for user root
+Nov 10 23:26:14 srv-fb54487c sshd[9681]: Accepted password for root from 198.51.100.212 port 9331 ssh2
+Nov 10 23:26:14 srv-fb54487c sshd[9681]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:26:14 srv-fb54487c systemd-logind[787]: New session 18 of user root.
+Nov 10 23:26:15 srv-fb54487c sshd[9681]: Received disconnect from 198.51.100.212 port 9331:11: disconnected by user
+Nov 10 23:26:15 srv-fb54487c sshd[9681]: Disconnected from user root 198.51.100.212 port 9331
+Nov 10 23:26:15 srv-fb54487c sshd[9681]: pam_unix(sshd:session): session closed for user root
+Nov 10 23:26:15 srv-fb54487c systemd-logind[787]: Session 18 logged out. Waiting for processes to exit.
+Nov 10 23:26:15 srv-fb54487c systemd-logind[787]: Removed session 18.
+Nov 10 23:26:26 srv-fb54487c sshd[9748]: Accepted publickey for root from 198.51.100.212 port 10048 ssh2: ED25519 SHA256:lLOGSBmkAlDhQipLOVkA0DFNr7ahQxyS9q0DsWy5qng
+Nov 10 23:26:26 srv-fb54487c sshd[9748]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:26:26 srv-fb54487c systemd-logind[787]: New session 19 of user root.
+Nov 10 23:26:28 srv-fb54487c sshd[9748]: Received disconnect from 198.51.100.212 port 10048:11: disconnected by user
+Nov 10 23:26:28 srv-fb54487c sshd[9748]: Disconnected from user root 198.51.100.212 port 10048
+Nov 10 23:26:28 srv-fb54487c sshd[9748]: pam_unix(sshd:session): session closed for user root
+Nov 10 23:26:28 srv-fb54487c systemd-logind[787]: Session 19 logged out. Waiting for processes to exit.
+Nov 10 23:26:28 srv-fb54487c systemd-logind[787]: Removed session 19.
+Nov 10 23:27:10 srv-fb54487c sshd[7916]: Received signal 15; terminating.
+Nov 10 23:27:10 srv-fb54487c sshd[9811]: Server listening on 0.0.0.0 port 22.
+Nov 10 23:27:10 srv-fb54487c sshd[9811]: Server listening on :: port 22.
+Nov 10 23:35:01 srv-fb54487c CRON[9850]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:35:01 srv-fb54487c CRON[9850]: pam_unix(cron:session): session closed for user root
+Nov 10 23:35:49 srv-fb54487c sshd[9853]: Connection closed by 198.51.100.175 port 59410 [preauth]
+Nov 10 23:35:59 srv-fb54487c sshd[8062]: Received disconnect from 198.51.100.212 port 8563:11: disconnected by user
+Nov 10 23:35:59 srv-fb54487c sshd[8062]: Disconnected from user root 198.51.100.212 port 8563
+Nov 10 23:35:59 srv-fb54487c sshd[8062]: pam_unix(sshd:session): session closed for user root
+Nov 10 23:35:59 srv-fb54487c systemd-logind[787]: Session 11 logged out. Waiting for processes to exit.
+Nov 10 23:35:59 srv-fb54487c systemd-logind[787]: Removed session 11.
+Nov 10 23:43:18 srv-fb54487c sshd[9862]: error: kex_exchange_identification: banner line contains invalid characters
+Nov 10 23:43:18 srv-fb54487c sshd[9862]: banner exchange: Connection from 198.51.100.106 port 27485: invalid format
+Nov 10 23:43:23 srv-fb54487c sshd[9863]: Received disconnect from 198.51.100.106 port 44742:11: Bye Bye [preauth]
+Nov 10 23:43:23 srv-fb54487c sshd[9863]: Disconnected from 198.51.100.106 port 44742 [preauth]
+Nov 10 23:44:28 srv-fb54487c sshd[9866]: error: kex_exchange_identification: Connection closed by remote host
+Nov 10 23:44:28 srv-fb54487c sshd[9866]: Connection closed by 198.51.100.99 port 56300
+Nov 10 23:45:01 srv-fb54487c CRON[9867]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:45:01 srv-fb54487c CRON[9867]: pam_unix(cron:session): session closed for user root
+Nov 10 23:48:06 srv-fb54487c sshd[9870]: error: kex_exchange_identification: Connection closed by remote host
+Nov 10 23:48:06 srv-fb54487c sshd[9870]: Connection closed by 192.0.2.98 port 60047
+Nov 10 23:48:08 srv-fb54487c sshd[9871]: Connection closed by 192.0.2.98 port 36803 [preauth]
+Nov 10 23:55:01 srv-fb54487c CRON[9876]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:55:01 srv-fb54487c CRON[9876]: pam_unix(cron:session): session closed for user root
+Nov 10 23:58:04 srv-fb54487c sshd[9879]: error: kex_exchange_identification: Connection closed by remote host
+Nov 10 23:58:04 srv-fb54487c sshd[9879]: Connection closed by 192.0.2.65 port 32705
+Nov 10 23:59:01 srv-fb54487c CRON[9880]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 10 23:59:01 srv-fb54487c CRON[9880]: pam_unix(cron:session): session closed for user root
+Nov 11 00:05:01 srv-fb54487c CRON[9947]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 00:05:01 srv-fb54487c CRON[9947]: pam_unix(cron:session): session closed for user root
+Nov 11 00:13:05 srv-fb54487c sshd[9953]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 00:13:05 srv-fb54487c sshd[9953]: Connection closed by 198.51.100.15 port 34322
+Nov 11 00:13:19 srv-fb54487c sshd[9955]: Received disconnect from 198.51.100.203 port 37227:11: Bye Bye [preauth]
+Nov 11 00:13:19 srv-fb54487c sshd[9955]: Disconnected from authenticating user root 198.51.100.203 port 37227 [preauth]
+Nov 11 00:15:01 srv-fb54487c CRON[9957]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 00:15:01 srv-fb54487c CRON[9957]: pam_unix(cron:session): session closed for user root
+Nov 11 00:17:01 srv-fb54487c CRON[9960]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 00:17:01 srv-fb54487c CRON[9960]: pam_unix(cron:session): session closed for user root
+Nov 11 00:18:05 srv-fb54487c sshd[9963]: Received disconnect from 198.51.100.203 port 56111:11: Bye Bye [preauth]
+Nov 11 00:18:05 srv-fb54487c sshd[9963]: Disconnected from authenticating user root 198.51.100.203 port 56111 [preauth]
+Nov 11 00:19:49 srv-fb54487c sshd[9966]: Received disconnect from 198.51.100.203 port 46012:11: Bye Bye [preauth]
+Nov 11 00:19:49 srv-fb54487c sshd[9966]: Disconnected from authenticating user root 198.51.100.203 port 46012 [preauth]
+Nov 11 00:20:21 srv-fb54487c sshd[9968]: Invalid user ubuntu from 198.51.100.203 port 51440
+Nov 11 00:20:21 srv-fb54487c sshd[9968]: Received disconnect from 198.51.100.203 port 51440:11: Bye Bye [preauth]
+Nov 11 00:20:21 srv-fb54487c sshd[9968]: Disconnected from invalid user ubuntu 198.51.100.203 port 51440 [preauth]
+Nov 11 00:21:28 srv-fb54487c sshd[9971]: Received disconnect from 198.51.100.203 port 36381:11: Bye Bye [preauth]
+Nov 11 00:21:28 srv-fb54487c sshd[9971]: Disconnected from authenticating user root 198.51.100.203 port 36381 [preauth]
+Nov 11 00:22:01 srv-fb54487c sshd[9973]: Invalid user admin from 198.51.100.203 port 42955
+Nov 11 00:22:01 srv-fb54487c sshd[9973]: Received disconnect from 198.51.100.203 port 42955:11: Bye Bye [preauth]
+Nov 11 00:22:01 srv-fb54487c sshd[9973]: Disconnected from invalid user admin 198.51.100.203 port 42955 [preauth]
+Nov 11 00:24:45 srv-fb54487c sshd[9975]: Received disconnect from 198.51.100.203 port 47053:11: Bye Bye [preauth]
+Nov 11 00:24:45 srv-fb54487c sshd[9975]: Disconnected from authenticating user root 198.51.100.203 port 47053 [preauth]
+Nov 11 00:25:01 srv-fb54487c CRON[9978]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 00:25:01 srv-fb54487c CRON[9978]: pam_unix(cron:session): session closed for user root
+Nov 11 00:25:18 srv-fb54487c sshd[9981]: Received disconnect from 198.51.100.203 port 53639:11: Bye Bye [preauth]
+Nov 11 00:25:18 srv-fb54487c sshd[9981]: Disconnected from authenticating user root 198.51.100.203 port 53639 [preauth]
+Nov 11 00:26:22 srv-fb54487c sshd[9983]: Received disconnect from 198.51.100.203 port 38089:11: Bye Bye [preauth]
+Nov 11 00:26:22 srv-fb54487c sshd[9983]: Disconnected from authenticating user root 198.51.100.203 port 38089 [preauth]
+Nov 11 00:26:55 srv-fb54487c sshd[9985]: Received disconnect from 198.51.100.203 port 44623:11: Bye Bye [preauth]
+Nov 11 00:26:55 srv-fb54487c sshd[9985]: Disconnected from authenticating user root 198.51.100.203 port 44623 [preauth]
+Nov 11 00:27:57 srv-fb54487c sshd[9987]: Invalid user testuser from 198.51.100.203 port 56468
+Nov 11 00:27:57 srv-fb54487c sshd[9987]: Received disconnect from 198.51.100.203 port 56468:11: Bye Bye [preauth]
+Nov 11 00:27:57 srv-fb54487c sshd[9987]: Disconnected from invalid user testuser 198.51.100.203 port 56468 [preauth]
+Nov 11 00:35:01 srv-fb54487c CRON[10008]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 00:35:01 srv-fb54487c CRON[10008]: pam_unix(cron:session): session closed for user root
+Nov 11 00:45:01 srv-fb54487c CRON[10015]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 00:45:01 srv-fb54487c CRON[10015]: pam_unix(cron:session): session closed for user root
+Nov 11 00:51:27 srv-fb54487c sshd[10025]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 00:51:27 srv-fb54487c sshd[10025]: Connection closed by 203.0.113.30 port 65105
+Nov 11 00:55:01 srv-fb54487c CRON[10026]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 00:55:01 srv-fb54487c CRON[10026]: pam_unix(cron:session): session closed for user root
+Nov 11 01:02:21 srv-fb54487c sshd[10056]: Connection reset by 198.51.100.195 port 60104 [preauth]
+Nov 11 01:05:01 srv-fb54487c CRON[10058]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 01:05:01 srv-fb54487c CRON[10058]: pam_unix(cron:session): session closed for user root
+Nov 11 01:15:01 srv-fb54487c CRON[10065]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 01:15:01 srv-fb54487c CRON[10065]: pam_unix(cron:session): session closed for user root
+Nov 11 01:17:01 srv-fb54487c CRON[10068]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 01:17:01 srv-fb54487c CRON[10068]: pam_unix(cron:session): session closed for user root
+Nov 11 01:25:01 srv-fb54487c CRON[10075]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 01:25:01 srv-fb54487c CRON[10075]: pam_unix(cron:session): session closed for user root
+Nov 11 01:35:01 srv-fb54487c CRON[10089]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 01:35:01 srv-fb54487c CRON[10089]: pam_unix(cron:session): session closed for user root
+Nov 11 01:45:01 srv-fb54487c CRON[10096]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 01:45:01 srv-fb54487c CRON[10096]: pam_unix(cron:session): session closed for user root
+Nov 11 01:55:01 srv-fb54487c CRON[10104]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 01:55:01 srv-fb54487c CRON[10104]: pam_unix(cron:session): session closed for user root
+Nov 11 02:05:01 srv-fb54487c CRON[10116]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 02:05:01 srv-fb54487c CRON[10116]: pam_unix(cron:session): session closed for user root
+Nov 11 02:15:01 srv-fb54487c CRON[10127]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 02:15:01 srv-fb54487c CRON[10127]: pam_unix(cron:session): session closed for user root
+Nov 11 02:15:12 srv-fb54487c sshd[10130]: error: kex_exchange_identification: read: Connection reset by peer
+Nov 11 02:15:12 srv-fb54487c sshd[10130]: Connection reset by 192.0.2.197 port 47585
+Nov 11 02:15:24 srv-fb54487c sshd[10131]: Connection reset by 192.0.2.109 port 9536 [preauth]
+Nov 11 02:17:01 srv-fb54487c CRON[10133]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 02:17:01 srv-fb54487c CRON[10133]: pam_unix(cron:session): session closed for user root
+Nov 11 02:19:45 srv-fb54487c sshd[10136]: Connection closed by 203.0.113.68 port 45832 [preauth]
+Nov 11 02:25:01 srv-fb54487c CRON[10140]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 02:25:01 srv-fb54487c CRON[10140]: pam_unix(cron:session): session closed for user root
+Nov 11 02:26:08 srv-fb54487c sshd[10150]: Connection closed by 203.0.113.121 port 60410 [preauth]
+Nov 11 02:35:01 srv-fb54487c CRON[10160]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 02:35:01 srv-fb54487c CRON[10160]: pam_unix(cron:session): session closed for user root
+Nov 11 02:36:19 srv-fb54487c sshd[10163]: Connection closed by 198.51.100.208 port 35115 [preauth]
+Nov 11 02:36:32 srv-fb54487c sshd[10165]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 02:36:32 srv-fb54487c sshd[10165]: Connection closed by 203.0.113.160 port 22834
+Nov 11 02:41:04 srv-fb54487c sshd[10169]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 02:41:04 srv-fb54487c sshd[10169]: Connection closed by 203.0.113.160 port 23314
+Nov 11 02:45:01 srv-fb54487c CRON[10170]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 02:45:01 srv-fb54487c CRON[10170]: pam_unix(cron:session): session closed for user root
+Nov 11 02:48:15 srv-fb54487c sshd[10174]: error: kex_exchange_identification: client sent invalid protocol identifier ""
+Nov 11 02:48:15 srv-fb54487c sshd[10174]: banner exchange: Connection from 203.0.113.71 port 58404: invalid format
+Nov 11 02:49:02 srv-fb54487c sshd[10175]: Connection closed by 203.0.113.71 port 48338 [preauth]
+Nov 11 02:55:01 srv-fb54487c CRON[10180]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 02:55:01 srv-fb54487c CRON[10180]: pam_unix(cron:session): session closed for user root
+Nov 11 03:05:01 srv-fb54487c CRON[10186]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 03:05:01 srv-fb54487c CRON[10186]: pam_unix(cron:session): session closed for user root
+Nov 11 03:10:01 srv-fb54487c CRON[10189]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 03:10:01 srv-fb54487c CRON[10189]: pam_unix(cron:session): session closed for user root
+Nov 11 03:15:01 srv-fb54487c CRON[10193]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 03:15:01 srv-fb54487c CRON[10193]: pam_unix(cron:session): session closed for user root
+Nov 11 03:17:01 srv-fb54487c CRON[10197]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 03:17:01 srv-fb54487c CRON[10197]: pam_unix(cron:session): session closed for user root
+Nov 11 03:25:01 srv-fb54487c CRON[10203]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 03:25:01 srv-fb54487c CRON[10203]: pam_unix(cron:session): session closed for user root
+Nov 11 03:34:07 srv-fb54487c sshd[10234]: error: kex_exchange_identification: client sent invalid protocol identifier "GET / HTTP/1.1"
+Nov 11 03:34:07 srv-fb54487c sshd[10234]: banner exchange: Connection from 192.0.2.199 port 51480: invalid format
+Nov 11 03:35:01 srv-fb54487c CRON[10235]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 03:35:01 srv-fb54487c CRON[10235]: pam_unix(cron:session): session closed for user root
+Nov 11 03:45:01 srv-fb54487c CRON[10248]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 03:45:01 srv-fb54487c CRON[10248]: pam_unix(cron:session): session closed for user root
+Nov 11 03:55:01 srv-fb54487c CRON[10254]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 03:55:01 srv-fb54487c CRON[10254]: pam_unix(cron:session): session closed for user root
+Nov 11 04:05:01 srv-fb54487c CRON[10260]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 04:05:01 srv-fb54487c CRON[10260]: pam_unix(cron:session): session closed for user root
+Nov 11 04:12:31 srv-fb54487c sshd[10266]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 04:12:31 srv-fb54487c sshd[10266]: Connection closed by 203.0.113.45 port 45510
+Nov 11 04:15:01 srv-fb54487c CRON[10269]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 04:15:01 srv-fb54487c CRON[10269]: pam_unix(cron:session): session closed for user root
+Nov 11 04:17:01 srv-fb54487c CRON[10272]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 04:17:01 srv-fb54487c CRON[10272]: pam_unix(cron:session): session closed for user root
+Nov 11 04:17:55 srv-fb54487c sshd[10276]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 04:17:55 srv-fb54487c sshd[10276]: Connection closed by 203.0.113.45 port 59420
+Nov 11 04:25:01 srv-fb54487c CRON[10280]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 04:25:01 srv-fb54487c CRON[10280]: pam_unix(cron:session): session closed for user root
+Nov 11 04:35:01 srv-fb54487c CRON[10330]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 04:35:01 srv-fb54487c CRON[10330]: pam_unix(cron:session): session closed for user root
+Nov 11 04:41:13 srv-fb54487c sshd[10336]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 04:41:13 srv-fb54487c sshd[10336]: Connection closed by 198.51.100.34 port 54091
+Nov 11 04:45:01 srv-fb54487c CRON[10337]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 04:45:01 srv-fb54487c CRON[10337]: pam_unix(cron:session): session closed for user root
+Nov 11 04:55:01 srv-fb54487c CRON[10343]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 04:55:01 srv-fb54487c CRON[10343]: pam_unix(cron:session): session closed for user root
+Nov 11 05:03:39 srv-fb54487c sshd[10353]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 05:03:39 srv-fb54487c sshd[10353]: Connection closed by 192.0.2.89 port 36304
+Nov 11 05:04:18 srv-fb54487c sshd[10355]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 05:04:18 srv-fb54487c sshd[10355]: Connection closed by 192.0.2.89 port 51142
+Nov 11 05:05:01 srv-fb54487c CRON[10356]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 05:05:01 srv-fb54487c CRON[10356]: pam_unix(cron:session): session closed for user root
+Nov 11 05:08:33 srv-fb54487c sshd[10359]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 05:08:33 srv-fb54487c sshd[10359]: Connection closed by 203.0.113.179 port 35756
+Nov 11 05:09:24 srv-fb54487c sshd[10361]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 05:09:24 srv-fb54487c sshd[10361]: Connection closed by 203.0.113.179 port 51898
+Nov 11 05:15:01 srv-fb54487c CRON[10370]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 05:15:01 srv-fb54487c CRON[10370]: pam_unix(cron:session): session closed for user root
+Nov 11 05:17:01 srv-fb54487c CRON[10373]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 05:17:01 srv-fb54487c CRON[10373]: pam_unix(cron:session): session closed for user root
+Nov 11 05:25:01 srv-fb54487c CRON[10378]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 05:25:01 srv-fb54487c CRON[10378]: pam_unix(cron:session): session closed for user root
+Nov 11 05:35:01 srv-fb54487c CRON[10389]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 05:35:01 srv-fb54487c CRON[10389]: pam_unix(cron:session): session closed for user root
+Nov 11 05:36:35 srv-fb54487c sshd[10392]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 05:36:35 srv-fb54487c sshd[10392]: Connection closed by 198.51.100.8 port 40726
+Nov 11 05:45:01 srv-fb54487c CRON[10396]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 05:45:01 srv-fb54487c CRON[10396]: pam_unix(cron:session): session closed for user root
+Nov 11 05:50:07 srv-fb54487c sshd[10400]: Connection closed by authenticating user root 198.51.100.8 port 44278 [preauth]
+Nov 11 05:55:01 srv-fb54487c CRON[10403]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 05:55:01 srv-fb54487c CRON[10403]: pam_unix(cron:session): session closed for user root
+Nov 11 06:05:01 srv-fb54487c CRON[10415]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 06:05:01 srv-fb54487c CRON[10415]: pam_unix(cron:session): session closed for user root
+Nov 11 06:15:01 srv-fb54487c CRON[13445]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 06:15:01 srv-fb54487c CRON[13445]: pam_unix(cron:session): session closed for user root
+Nov 11 06:17:01 srv-fb54487c CRON[13449]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 06:17:01 srv-fb54487c CRON[13449]: pam_unix(cron:session): session closed for user root
+Nov 11 06:20:08 srv-fb54487c sshd[13453]: Invalid user  from 203.0.113.207 port 45152
+Nov 11 06:20:16 srv-fb54487c sshd[13453]: Connection closed by invalid user  203.0.113.207 port 45152 [preauth]
+Nov 11 06:25:01 srv-fb54487c CRON[13458]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 06:25:01 srv-fb54487c CRON[13457]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 06:25:01 srv-fb54487c CRON[13458]: pam_unix(cron:session): session closed for user root
+Nov 11 06:25:01 srv-fb54487c CRON[13457]: pam_unix(cron:session): session closed for user root
+Nov 11 06:35:01 srv-fb54487c CRON[13480]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 06:35:01 srv-fb54487c CRON[13480]: pam_unix(cron:session): session closed for user root
+Nov 11 06:45:01 srv-fb54487c CRON[13489]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 06:45:01 srv-fb54487c CRON[13489]: pam_unix(cron:session): session closed for user root
+Nov 11 06:46:00 srv-fb54487c sshd[13492]: Connection reset by 192.0.2.193 port 60872 [preauth]
+Nov 11 06:55:01 srv-fb54487c CRON[13497]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 06:55:01 srv-fb54487c CRON[13497]: pam_unix(cron:session): session closed for user root
+Nov 11 07:05:01 srv-fb54487c CRON[13503]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 07:05:01 srv-fb54487c CRON[13503]: pam_unix(cron:session): session closed for user root
+Nov 11 07:13:02 srv-fb54487c sshd[13509]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 07:13:02 srv-fb54487c sshd[13509]: Connection closed by 192.0.2.104 port 33758
+Nov 11 07:14:09 srv-fb54487c sshd[13510]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 07:14:09 srv-fb54487c sshd[13510]: Connection closed by 192.0.2.104 port 44180
+Nov 11 07:15:01 srv-fb54487c CRON[13511]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 07:15:01 srv-fb54487c CRON[13511]: pam_unix(cron:session): session closed for user root
+Nov 11 07:17:01 srv-fb54487c CRON[13514]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 07:17:01 srv-fb54487c CRON[13514]: pam_unix(cron:session): session closed for user root
+Nov 11 07:25:01 srv-fb54487c CRON[13532]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 07:25:01 srv-fb54487c CRON[13532]: pam_unix(cron:session): session closed for user root
+Nov 11 07:35:01 srv-fb54487c CRON[13558]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 07:35:01 srv-fb54487c CRON[13558]: pam_unix(cron:session): session closed for user root
+Nov 11 07:45:01 srv-fb54487c CRON[13564]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 07:45:01 srv-fb54487c CRON[13564]: pam_unix(cron:session): session closed for user root
+Nov 11 07:48:39 srv-fb54487c sshd[13567]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 07:48:39 srv-fb54487c sshd[13567]: Connection closed by 203.0.113.115 port 46656
+Nov 11 07:49:52 srv-fb54487c sshd[13568]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 07:49:52 srv-fb54487c sshd[13568]: Connection closed by 203.0.113.115 port 33247
+Nov 11 07:55:01 srv-fb54487c CRON[13577]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 07:55:01 srv-fb54487c CRON[13577]: pam_unix(cron:session): session closed for user root
+Nov 11 08:05:01 srv-fb54487c CRON[13583]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 08:05:01 srv-fb54487c CRON[13583]: pam_unix(cron:session): session closed for user root
+Nov 11 08:15:01 srv-fb54487c CRON[13589]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 08:15:01 srv-fb54487c CRON[13589]: pam_unix(cron:session): session closed for user root
+Nov 11 08:17:01 srv-fb54487c CRON[13592]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 08:17:01 srv-fb54487c CRON[13592]: pam_unix(cron:session): session closed for user root
+Nov 11 08:25:01 srv-fb54487c CRON[13603]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 08:25:01 srv-fb54487c CRON[13603]: pam_unix(cron:session): session closed for user root
+Nov 11 08:35:01 srv-fb54487c CRON[13649]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 08:35:01 srv-fb54487c CRON[13649]: pam_unix(cron:session): session closed for user root
+Nov 11 08:45:01 srv-fb54487c CRON[13656]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 08:45:01 srv-fb54487c CRON[13656]: pam_unix(cron:session): session closed for user root
+Nov 11 08:51:11 srv-fb54487c sshd[13661]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 08:51:11 srv-fb54487c sshd[13661]: Connection closed by 198.51.100.25 port 24631
+Nov 11 08:54:08 srv-fb54487c sshd[13663]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 08:54:08 srv-fb54487c sshd[13663]: Connection closed by 203.0.113.32 port 19457
+Nov 11 08:54:50 srv-fb54487c sshd[13664]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 08:54:50 srv-fb54487c sshd[13664]: Connection closed by 203.0.113.32 port 30718
+Nov 11 08:55:01 srv-fb54487c CRON[13665]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 08:55:01 srv-fb54487c CRON[13665]: pam_unix(cron:session): session closed for user root
+Nov 11 09:00:22 srv-fb54487c sshd[13669]: Invalid user tester from 198.51.100.131 port 40438
+Nov 11 09:00:22 srv-fb54487c sshd[13669]: Received disconnect from 198.51.100.131 port 40438:11: Bye Bye [preauth]
+Nov 11 09:00:22 srv-fb54487c sshd[13669]: Disconnected from invalid user tester 198.51.100.131 port 40438 [preauth]
+Nov 11 09:02:55 srv-fb54487c sshd[13673]: Received disconnect from 198.51.100.179 port 35852:11: Bye Bye [preauth]
+Nov 11 09:02:55 srv-fb54487c sshd[13673]: Disconnected from authenticating user root 198.51.100.179 port 35852 [preauth]
+Nov 11 09:04:13 srv-fb54487c sshd[13675]: Received disconnect from 198.51.100.179 port 52780:11: Bye Bye [preauth]
+Nov 11 09:04:13 srv-fb54487c sshd[13675]: Disconnected from authenticating user root 198.51.100.179 port 52780 [preauth]
+Nov 11 09:04:46 srv-fb54487c sshd[13677]: Received disconnect from 198.51.100.179 port 49808:11: Bye Bye [preauth]
+Nov 11 09:04:46 srv-fb54487c sshd[13677]: Disconnected from authenticating user root 198.51.100.179 port 49808 [preauth]
+Nov 11 09:05:01 srv-fb54487c CRON[13679]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 09:05:01 srv-fb54487c CRON[13679]: pam_unix(cron:session): session closed for user root
+Nov 11 09:05:19 srv-fb54487c sshd[13682]: Received disconnect from 198.51.100.179 port 37640:11: Bye Bye [preauth]
+Nov 11 09:05:19 srv-fb54487c sshd[13682]: Disconnected from authenticating user root 198.51.100.179 port 37640 [preauth]
+Nov 11 09:05:50 srv-fb54487c sshd[13686]: Received disconnect from 198.51.100.179 port 38898:11: Bye Bye [preauth]
+Nov 11 09:05:50 srv-fb54487c sshd[13686]: Disconnected from authenticating user root 198.51.100.179 port 38898 [preauth]
+Nov 11 09:06:24 srv-fb54487c sshd[13688]: Received disconnect from 198.51.100.179 port 43590:11: Bye Bye [preauth]
+Nov 11 09:06:24 srv-fb54487c sshd[13688]: Disconnected from authenticating user root 198.51.100.179 port 43590 [preauth]
+Nov 11 09:06:58 srv-fb54487c sshd[13690]: Received disconnect from 198.51.100.179 port 40010:11: Bye Bye [preauth]
+Nov 11 09:06:58 srv-fb54487c sshd[13690]: Disconnected from authenticating user root 198.51.100.179 port 40010 [preauth]
+Nov 11 09:07:30 srv-fb54487c sshd[13692]: Received disconnect from 198.51.100.179 port 47810:11: Bye Bye [preauth]
+Nov 11 09:07:30 srv-fb54487c sshd[13692]: Disconnected from authenticating user root 198.51.100.179 port 47810 [preauth]
+Nov 11 09:08:02 srv-fb54487c sshd[13694]: Received disconnect from 198.51.100.179 port 59634:11: Bye Bye [preauth]
+Nov 11 09:08:02 srv-fb54487c sshd[13694]: Disconnected from authenticating user root 198.51.100.179 port 59634 [preauth]
+Nov 11 09:08:35 srv-fb54487c sshd[13696]: Received disconnect from 198.51.100.179 port 55844:11: Bye Bye [preauth]
+Nov 11 09:08:35 srv-fb54487c sshd[13696]: Disconnected from authenticating user root 198.51.100.179 port 55844 [preauth]
+Nov 11 09:09:06 srv-fb54487c sshd[13698]: Received disconnect from 198.51.100.179 port 45428:11: Bye Bye [preauth]
+Nov 11 09:09:06 srv-fb54487c sshd[13698]: Disconnected from authenticating user root 198.51.100.179 port 45428 [preauth]
+Nov 11 09:09:09 srv-fb54487c sshd[13700]: Received disconnect from 198.51.100.131 port 60368:11: Bye Bye [preauth]
+Nov 11 09:09:09 srv-fb54487c sshd[13700]: Disconnected from authenticating user root 198.51.100.131 port 60368 [preauth]
+Nov 11 09:09:38 srv-fb54487c sshd[13702]: Received disconnect from 198.51.100.179 port 57228:11: Bye Bye [preauth]
+Nov 11 09:09:38 srv-fb54487c sshd[13702]: Disconnected from authenticating user root 198.51.100.179 port 57228 [preauth]
+Nov 11 09:09:52 srv-fb54487c sshd[13704]: Invalid user test from 198.51.100.131 port 51530
+Nov 11 09:09:52 srv-fb54487c sshd[13704]: Received disconnect from 198.51.100.131 port 51530:11: Bye Bye [preauth]
+Nov 11 09:09:52 srv-fb54487c sshd[13704]: Disconnected from invalid user test 198.51.100.131 port 51530 [preauth]
+Nov 11 09:10:10 srv-fb54487c sshd[13706]: Invalid user ubuntu from 198.51.100.179 port 57636
+Nov 11 09:10:10 srv-fb54487c sshd[13706]: Received disconnect from 198.51.100.179 port 57636:11: Bye Bye [preauth]
+Nov 11 09:10:10 srv-fb54487c sshd[13706]: Disconnected from invalid user ubuntu 198.51.100.179 port 57636 [preauth]
+Nov 11 09:10:44 srv-fb54487c sshd[13708]: Received disconnect from 198.51.100.179 port 59478:11: Bye Bye [preauth]
+Nov 11 09:10:44 srv-fb54487c sshd[13708]: Disconnected from authenticating user root 198.51.100.179 port 59478 [preauth]
+Nov 11 09:11:17 srv-fb54487c sshd[13712]: Received disconnect from 198.51.100.179 port 57650:11: Bye Bye [preauth]
+Nov 11 09:11:17 srv-fb54487c sshd[13712]: Disconnected from authenticating user root 198.51.100.179 port 57650 [preauth]
+Nov 11 09:11:26 srv-fb54487c sshd[13714]: Received disconnect from 198.51.100.131 port 36366:11: Bye Bye [preauth]
+Nov 11 09:11:26 srv-fb54487c sshd[13714]: Disconnected from authenticating user root 198.51.100.131 port 36366 [preauth]
+Nov 11 09:11:37 srv-fb54487c sshd[13716]: error: kex_exchange_identification: banner line contains invalid characters
+Nov 11 09:11:37 srv-fb54487c sshd[13716]: banner exchange: Connection from 203.0.113.238 port 46678: invalid format
+Nov 11 09:11:49 srv-fb54487c sshd[13717]: Received disconnect from 198.51.100.179 port 48956:11: Bye Bye [preauth]
+Nov 11 09:11:49 srv-fb54487c sshd[13717]: Disconnected from authenticating user root 198.51.100.179 port 48956 [preauth]
+Nov 11 09:12:21 srv-fb54487c sshd[13719]: Received disconnect from 198.51.100.179 port 45508:11: Bye Bye [preauth]
+Nov 11 09:12:21 srv-fb54487c sshd[13719]: Disconnected from authenticating user root 198.51.100.179 port 45508 [preauth]
+Nov 11 09:12:52 srv-fb54487c sshd[13721]: Invalid user ubuntu from 198.51.100.179 port 36300
+Nov 11 09:12:52 srv-fb54487c sshd[13721]: Received disconnect from 198.51.100.179 port 36300:11: Bye Bye [preauth]
+Nov 11 09:12:52 srv-fb54487c sshd[13721]: Disconnected from invalid user ubuntu 198.51.100.179 port 36300 [preauth]
+Nov 11 09:13:25 srv-fb54487c sshd[13723]: Received disconnect from 198.51.100.179 port 37424:11: Bye Bye [preauth]
+Nov 11 09:13:25 srv-fb54487c sshd[13723]: Disconnected from authenticating user root 198.51.100.179 port 37424 [preauth]
+Nov 11 09:13:49 srv-fb54487c sshd[13725]: Received disconnect from 198.51.100.131 port 40422:11: Bye Bye [preauth]
+Nov 11 09:13:49 srv-fb54487c sshd[13725]: Disconnected from authenticating user root 198.51.100.131 port 40422 [preauth]
+Nov 11 09:13:57 srv-fb54487c sshd[13727]: Invalid user student2 from 198.51.100.179 port 50274
+Nov 11 09:13:57 srv-fb54487c sshd[13727]: Received disconnect from 198.51.100.179 port 50274:11: Bye Bye [preauth]
+Nov 11 09:13:57 srv-fb54487c sshd[13727]: Disconnected from invalid user student2 198.51.100.179 port 50274 [preauth]
+Nov 11 09:15:01 srv-fb54487c CRON[13729]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 09:15:01 srv-fb54487c CRON[13729]: pam_unix(cron:session): session closed for user root
+Nov 11 09:15:25 srv-fb54487c sshd[13732]: Received disconnect from 198.51.100.131 port 33040:11: Bye Bye [preauth]
+Nov 11 09:15:25 srv-fb54487c sshd[13732]: Disconnected from authenticating user root 198.51.100.131 port 33040 [preauth]
+Nov 11 09:17:01 srv-fb54487c CRON[13735]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 09:17:01 srv-fb54487c CRON[13735]: pam_unix(cron:session): session closed for user root
+Nov 11 09:18:47 srv-fb54487c sshd[13739]: Received disconnect from 198.51.100.131 port 57390:11: Bye Bye [preauth]
+Nov 11 09:18:47 srv-fb54487c sshd[13739]: Disconnected from authenticating user root 198.51.100.131 port 57390 [preauth]
+Nov 11 09:21:00 srv-fb54487c sshd[13746]: Invalid user debian from 198.51.100.131 port 40962
+Nov 11 09:21:00 srv-fb54487c sshd[13746]: Received disconnect from 198.51.100.131 port 40962:11: Bye Bye [preauth]
+Nov 11 09:21:00 srv-fb54487c sshd[13746]: Disconnected from invalid user debian 198.51.100.131 port 40962 [preauth]
+Nov 11 09:25:01 srv-fb54487c CRON[13750]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 09:25:01 srv-fb54487c CRON[13750]: pam_unix(cron:session): session closed for user root
+Nov 11 09:31:24 srv-fb54487c sshd[13762]: Connection closed by 192.0.2.187 port 7704 [preauth]
+Nov 11 09:34:52 srv-fb54487c sshd[13789]: Received disconnect from 192.0.2.228 port 55336:11: Bye Bye [preauth]
+Nov 11 09:34:52 srv-fb54487c sshd[13789]: Disconnected from authenticating user root 192.0.2.228 port 55336 [preauth]
+Nov 11 09:35:01 srv-fb54487c CRON[13791]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 09:35:01 srv-fb54487c CRON[13791]: pam_unix(cron:session): session closed for user root
+Nov 11 09:40:43 srv-fb54487c sshd[13795]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 09:40:43 srv-fb54487c sshd[13795]: Connection closed by 198.51.100.104 port 60262
+Nov 11 09:42:38 srv-fb54487c sshd[13797]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 09:42:38 srv-fb54487c sshd[13797]: Connection closed by 198.51.100.104 port 37606
+Nov 11 09:43:10 srv-fb54487c sshd[13798]: Received disconnect from 192.0.2.1 port 37546:11: Bye Bye [preauth]
+Nov 11 09:43:10 srv-fb54487c sshd[13798]: Disconnected from authenticating user root 192.0.2.1 port 37546 [preauth]
+Nov 11 09:43:56 srv-fb54487c sshd[13800]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 09:43:56 srv-fb54487c sshd[13800]: Connection closed by 203.0.113.73 port 54670
+Nov 11 09:44:05 srv-fb54487c sshd[13801]: error: kex_exchange_identification: Connection closed by remote host
+Nov 11 09:44:05 srv-fb54487c sshd[13801]: Connection closed by 203.0.113.73 port 45526
+Nov 11 09:45:01 srv-fb54487c CRON[13802]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 09:45:01 srv-fb54487c CRON[13802]: pam_unix(cron:session): session closed for user root
+Nov 11 09:48:39 srv-fb54487c sshd[13806]: Connection closed by 192.0.2.200 port 34090 [preauth]
+Nov 11 09:50:43 srv-fb54487c sshd[13809]: Received disconnect from 192.0.2.1 port 52000:11: Bye Bye [preauth]
+Nov 11 09:50:43 srv-fb54487c sshd[13809]: Disconnected from authenticating user root 192.0.2.1 port 52000 [preauth]
+Nov 11 09:51:28 srv-fb54487c sshd[13823]: Received disconnect from 192.0.2.1 port 34318:11: Bye Bye [preauth]
+Nov 11 09:51:28 srv-fb54487c sshd[13823]: Disconnected from authenticating user root 192.0.2.1 port 34318 [preauth]
+Nov 11 09:52:16 srv-fb54487c sshd[13825]: Received disconnect from 192.0.2.1 port 35380:11: Bye Bye [preauth]
+Nov 11 09:52:16 srv-fb54487c sshd[13825]: Disconnected from authenticating user root 192.0.2.1 port 35380 [preauth]
+Nov 11 09:53:29 srv-fb54487c sshd[13827]: Received disconnect from 203.0.113.28 port 37368:11: Bye Bye [preauth]
+Nov 11 09:53:29 srv-fb54487c sshd[13827]: Disconnected from authenticating user root 203.0.113.28 port 37368 [preauth]
+Nov 11 09:54:37 srv-fb54487c sshd[13830]: Received disconnect from 192.0.2.1 port 53806:11: Bye Bye [preauth]
+Nov 11 09:54:37 srv-fb54487c sshd[13830]: Disconnected from authenticating user root 192.0.2.1 port 53806 [preauth]
+Nov 11 09:55:01 srv-fb54487c CRON[13832]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 09:55:01 srv-fb54487c CRON[13832]: pam_unix(cron:session): session closed for user root
+Nov 11 09:55:21 srv-fb54487c sshd[13835]: Received disconnect from 192.0.2.1 port 38912:11: Bye Bye [preauth]
+Nov 11 09:55:21 srv-fb54487c sshd[13835]: Disconnected from authenticating user root 192.0.2.1 port 38912 [preauth]
+Nov 11 09:55:48 srv-fb54487c sshd[13837]: Invalid user student from 203.0.113.28 port 48156
+Nov 11 09:55:48 srv-fb54487c sshd[13837]: Received disconnect from 203.0.113.28 port 48156:11: Bye Bye [preauth]
+Nov 11 09:55:48 srv-fb54487c sshd[13837]: Disconnected from invalid user student 203.0.113.28 port 48156 [preauth]
+Nov 11 09:56:12 srv-fb54487c sshd[13839]: Invalid user dev from 192.0.2.1 port 33668
+Nov 11 09:56:12 srv-fb54487c sshd[13839]: Received disconnect from 192.0.2.1 port 33668:11: Bye Bye [preauth]
+Nov 11 09:56:12 srv-fb54487c sshd[13839]: Disconnected from invalid user dev 192.0.2.1 port 33668 [preauth]
+Nov 11 09:56:29 srv-fb54487c sshd[13841]: Received disconnect from 203.0.113.28 port 48798:11: Bye Bye [preauth]
+Nov 11 09:56:29 srv-fb54487c sshd[13841]: Disconnected from authenticating user root 203.0.113.28 port 48798 [preauth]
+Nov 11 09:57:04 srv-fb54487c sshd[13843]: Received disconnect from 203.0.113.28 port 38362:11: Bye Bye [preauth]
+Nov 11 09:57:04 srv-fb54487c sshd[13843]: Disconnected from authenticating user root 203.0.113.28 port 38362 [preauth]
+Nov 11 09:57:39 srv-fb54487c sshd[13845]: Received disconnect from 203.0.113.28 port 33762:11: Bye Bye [preauth]
+Nov 11 09:57:39 srv-fb54487c sshd[13845]: Disconnected from authenticating user root 203.0.113.28 port 33762 [preauth]
+Nov 11 09:58:13 srv-fb54487c sshd[13847]: Received disconnect from 203.0.113.28 port 33422:11: Bye Bye [preauth]
+Nov 11 09:58:13 srv-fb54487c sshd[13847]: Disconnected from authenticating user root 203.0.113.28 port 33422 [preauth]
+Nov 11 09:58:47 srv-fb54487c sshd[13849]: Received disconnect from 203.0.113.28 port 60228:11: Bye Bye [preauth]
+Nov 11 09:58:47 srv-fb54487c sshd[13849]: Disconnected from authenticating user root 203.0.113.28 port 60228 [preauth]
+Nov 11 09:59:24 srv-fb54487c sshd[13851]: Received disconnect from 203.0.113.28 port 47598:11: Bye Bye [preauth]
+Nov 11 09:59:24 srv-fb54487c sshd[13851]: Disconnected from authenticating user root 203.0.113.28 port 47598 [preauth]
+Nov 11 09:59:58 srv-fb54487c sshd[13854]: Received disconnect from 203.0.113.28 port 56642:11: Bye Bye [preauth]
+Nov 11 09:59:58 srv-fb54487c sshd[13854]: Disconnected from authenticating user root 203.0.113.28 port 56642 [preauth]
+Nov 11 10:00:32 srv-fb54487c sshd[13856]: Received disconnect from 203.0.113.28 port 33818:11: Bye Bye [preauth]
+Nov 11 10:00:32 srv-fb54487c sshd[13856]: Disconnected from authenticating user root 203.0.113.28 port 33818 [preauth]
+Nov 11 10:01:10 srv-fb54487c sshd[13859]: Received disconnect from 203.0.113.28 port 41788:11: Bye Bye [preauth]
+Nov 11 10:01:10 srv-fb54487c sshd[13859]: Disconnected from authenticating user root 203.0.113.28 port 41788 [preauth]
+Nov 11 10:01:45 srv-fb54487c sshd[13861]: Received disconnect from 203.0.113.28 port 59152:11: Bye Bye [preauth]
+Nov 11 10:01:45 srv-fb54487c sshd[13861]: Disconnected from authenticating user root 203.0.113.28 port 59152 [preauth]
+Nov 11 10:02:19 srv-fb54487c sshd[13864]: Received disconnect from 203.0.113.28 port 50118:11: Bye Bye [preauth]
+Nov 11 10:02:19 srv-fb54487c sshd[13864]: Disconnected from authenticating user root 203.0.113.28 port 50118 [preauth]
+Nov 11 10:02:53 srv-fb54487c sshd[13866]: Received disconnect from 203.0.113.28 port 54182:11: Bye Bye [preauth]
+Nov 11 10:02:53 srv-fb54487c sshd[13866]: Disconnected from authenticating user root 203.0.113.28 port 54182 [preauth]
+Nov 11 10:03:13 srv-fb54487c sshd[13868]: Invalid user administrator from 192.0.2.1 port 34314
+Nov 11 10:03:13 srv-fb54487c sshd[13868]: Received disconnect from 192.0.2.1 port 34314:11: Bye Bye [preauth]
+Nov 11 10:03:13 srv-fb54487c sshd[13868]: Disconnected from invalid user administrator 192.0.2.1 port 34314 [preauth]
+Nov 11 10:03:27 srv-fb54487c sshd[13870]: Received disconnect from 203.0.113.28 port 35780:11: Bye Bye [preauth]
+Nov 11 10:03:27 srv-fb54487c sshd[13870]: Disconnected from authenticating user root 203.0.113.28 port 35780 [preauth]
+Nov 11 10:04:03 srv-fb54487c sshd[13872]: Received disconnect from 203.0.113.28 port 52502:11: Bye Bye [preauth]
+Nov 11 10:04:03 srv-fb54487c sshd[13872]: Disconnected from authenticating user root 203.0.113.28 port 52502 [preauth]
+Nov 11 10:04:37 srv-fb54487c sshd[13874]: Received disconnect from 203.0.113.28 port 60188:11: Bye Bye [preauth]
+Nov 11 10:04:37 srv-fb54487c sshd[13874]: Disconnected from authenticating user root 203.0.113.28 port 60188 [preauth]
+Nov 11 10:04:49 srv-fb54487c sshd[13876]: Received disconnect from 192.0.2.1 port 48152:11: Bye Bye [preauth]
+Nov 11 10:04:49 srv-fb54487c sshd[13876]: Disconnected from authenticating user root 192.0.2.1 port 48152 [preauth]
+Nov 11 10:05:01 srv-fb54487c CRON[13879]: pam_unix(cron:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 10:05:01 srv-fb54487c CRON[13879]: pam_unix(cron:session): session closed for user root
+Nov 11 10:05:12 srv-fb54487c sshd[13882]: Received disconnect from 203.0.113.28 port 55042:11: Bye Bye [preauth]
+Nov 11 10:05:12 srv-fb54487c sshd[13882]: Disconnected from authenticating user root 203.0.113.28 port 55042 [preauth]
+Nov 11 10:05:45 srv-fb54487c sshd[13884]: Received disconnect from 203.0.113.28 port 51994:11: Bye Bye [preauth]
+Nov 11 10:05:45 srv-fb54487c sshd[13884]: Disconnected from authenticating user root 203.0.113.28 port 51994 [preauth]
+Nov 11 10:06:19 srv-fb54487c sshd[13886]: Received disconnect from 203.0.113.28 port 55776:11: Bye Bye [preauth]
+Nov 11 10:06:19 srv-fb54487c sshd[13886]: Disconnected from authenticating user root 203.0.113.28 port 55776 [preauth]
+Nov 11 10:08:00 srv-fb54487c sshd[13888]: Accepted publickey for root from 192.0.2.55 port 47434 ssh2: ED25519 SHA256:lLOGSBmkAlDhQipLOVkA0DFNr7ahQxyS9q0DsWy5qng
+Nov 11 10:08:00 srv-fb54487c sshd[13888]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 10:08:00 srv-fb54487c systemd-logind[787]: New session 97 of user root.
+Nov 11 10:08:00 srv-fb54487c systemd: pam_unix(systemd-user:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 10:08:02 srv-fb54487c sshd[13888]: Received disconnect from 192.0.2.55 port 47434:11: disconnected by user
+Nov 11 10:08:02 srv-fb54487c sshd[13888]: Disconnected from user root 192.0.2.55 port 47434
+Nov 11 10:08:02 srv-fb54487c sshd[13888]: pam_unix(sshd:session): session closed for user root
+Nov 11 10:08:02 srv-fb54487c systemd-logind[787]: Session 97 logged out. Waiting for processes to exit.
+Nov 11 10:08:02 srv-fb54487c systemd-logind[787]: Removed session 97.
+Nov 11 10:08:02 srv-fb54487c sshd[13983]: Accepted publickey for root from 192.0.2.55 port 47435 ssh2: ED25519 SHA256:lLOGSBmkAlDhQipLOVkA0DFNr7ahQxyS9q0DsWy5qng
+Nov 11 10:08:02 srv-fb54487c sshd[13983]: pam_unix(sshd:session): session opened for user root(uid=0) by (uid=0)
+Nov 11 10:08:02 srv-fb54487c systemd-logind[787]: New session 99 of user root.

@@ -34,6 +34,9 @@ def summary_rows(result: AnalysisResult) -> list[tuple[str, str]]:
         ("日志文件", result.filename),
         ("解析成功行数", str(len(result.entries))),
         ("解析失败行数", f"{len(result.parse_errors)}（{result.parse_error_rate:.2%}）"),
+        # 单列一行，不藏进失败率里：这类行是 CRON/systemd 之类的无关记录，
+        # 数量往往比有效行还多，藏起来会让人误判日志质量。
+        ("跳过（无来源 IP）", str(result.skipped_no_ip)),
         ("告警总数", str(len(result.findings))),
         ("涉及攻击类型", "、".join(by_cat.keys()) if by_cat else "无"),
         ("严重 / 高危", f"{by_sev.get('严重', 0)} / {by_sev.get('高', 0)}"),

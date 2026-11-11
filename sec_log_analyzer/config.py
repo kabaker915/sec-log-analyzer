@@ -30,6 +30,31 @@ class Config:
     scan_burst_threshold: int = 5
     scan_burst_distinct_threshold: int = 5
 
+    # ---- 行为检测：协议误用（4xx 协议级错误突发）----
+    # 为什么单独盯这几个状态码：
+    #   正常浏览器几乎不会产生 400/408/414/431/505 —— 它们是"你发的请求不是合法 HTTP"
+    #   的信号。而扫描器拿 TLS 握手包直接怼 80 端口（curl https://ip:80）时，
+    #   nginx 收到 \x16\x03\x01 开头的一堆二进制，原样回一个 400。
+    #   这类探测不携带任何 payload，内容规则一条都命中不了，只能在协议层抓。
+    # 窗口给 300 秒而不是 60 秒：真实观测到的手动探测是每分钟一两次，
+    # 窗口太短会把它切成一段段孤立事件，凑不够次数。
+    protocol_error_window: int = 300
+    protocol_error_threshold: int = 3
+    # 只统计"服务端认为请求本身不合法"的状态码。
+    # 刻意不含 401/403：那是鉴权结果，正常业务大量存在，混进来误报会失控。
+    protocol_error_statuses: tuple[int, ...] = (400, 408, 414, 431, 505)
+
+    # ---- 行为检测：分布式扫描（多 IP 同指纹）----
+    # 单 IP 阈值规则天然看不见分布式扫描：每个肉鸡只发 1 次请求，
+    # 任何"同一 IP 在 N 秒内 M 次"的规则都不会触发。
+    # 2026-11-11 实测：9 个不同 IP、各发 1 次、同一个 UA、同一个路径 /.git/config。
+    # 只能靠"跨 IP 聚合指纹"来抓。
+    distributed_window: int = 3600
+    distributed_min_ips: int = 3
+    # 要求命中请求里至少这个比例是错误状态码（4xx/5xx）。
+    # 不加这条会把"9 个真实用户看同一个首页"判成分布式扫描 —— 那是灾难性误报。
+    distributed_error_ratio: float = 0.6
+
     # ---- 行为检测：SSH 爆破 ----
     # 双层窗口：快速爆破抓脚本小子，慢速爆破（low & slow）抓绕过速率限制的人
     brute_fast_window: int = 60
@@ -75,6 +100,12 @@ class Config:
         problems: list[str] = []
         if self.scan_window_seconds <= 0:
             problems.append("scan_window_seconds 必须大于 0")
+        if self.protocol_error_window <= 0:
+            problems.append("protocol_error_window 必须大于 0")
+        if self.protocol_error_threshold < 2:
+            # 阈值设成 1 等于"任何一次 400 都告警"。人手打错一个请求就会触发，
+            # 这种规则上线三天就会被同事关掉 —— 告警系统最常见的死法。
+            problems.append("protocol_error_threshold 不应小于 2（否则等同于单次 400 即告警）")
         if self.alert_score_threshold <= 0:
             problems.append("alert_score_threshold 必须大于 0")
         if self.ai_enabled and not self.ai_api_key:

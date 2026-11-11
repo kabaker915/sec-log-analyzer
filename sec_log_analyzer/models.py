@@ -107,11 +107,24 @@ class AnalysisResult:
     entries: list[LogEntry] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
     parse_errors: list[str] = field(default_factory=list)
+    # 能识别成 syslog、但里面根本没有 IP 的行（CRON、systemd-logind、sudo 等）。
+    # 这类行对"谁在攻击我"这个问题毫无价值，但它们**不是解析错误**。
+    # 早期版本把它们一律记成"无法识别"，导致 auth.log 的解析失败率虚高到 71%，
+    # 看报告的人第一反应是"工具坏了"。指标失真比功能缺失更危险 ——
+    # 一个会撒谎的仪表盘，比没有仪表盘更糟。
+    skipped_no_ip: int = 0
     notes: list[str] = field(default_factory=list)
     elapsed_ms: int = 0
 
     @property
     def parse_error_rate(self) -> float:
+        """真正的解析失败率：分母只算"该解析的行"。
+
+        被跳过的无关行（CRON 之类）和解析失败不是一回事，不能混进分子，
+        也不能把分母撑大来冲淡问题。这里的口径是：
+            失败率 = 失败行 / (成功行 + 失败行)
+        跳过行单独展示，不参与这个比值。
+        """
         total = len(self.entries) + len(self.parse_errors)
         return len(self.parse_errors) / total if total else 0.0
 

@@ -41,8 +41,14 @@ def analyze_bytes(
         entries=entries,
         findings=findings,
         parse_errors=errors,
+        skipped_no_ip=parser.skipped_no_ip,
     )
     result.notes.append(f"文本按 {used_encoding} 解码。")
+    if parser.skipped_no_ip:
+        result.notes.append(
+            f"跳过 {parser.skipped_no_ip} 行与来源 IP 无关的日志"
+            f"（CRON、systemd-logind、内核等），不计入解析失败。"
+        )
 
     if use_ai is not None:
         config.ai_enabled = use_ai
