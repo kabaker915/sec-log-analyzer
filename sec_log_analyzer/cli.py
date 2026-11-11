@@ -9,12 +9,74 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from .config import Config
 from .ocsf import to_jsonl
 from .pipeline import analyze_file
 from .reporter import to_csv, to_html, to_markdown
+
+
+def _severity_tag(f) -> str:
+    """终端里不靠颜色分级。
+
+    颜色在日志文件、管道、CI 输出里全部丢失，而文本标记永远在。
+    这也是把告警接到告警平台时唯一可靠的传输形式。
+    """
+    return {
+        "critical": "[严重]",
+        "high": "[高危]",
+        "medium": "[中危]",
+        "low": "[低危]",
+    }.get(f.severity.value, "[?]")
+
+
+def _run_tail(files: list[str], config: Config, *, from_start: bool) -> int:
+    """实时模式主循环。
+
+    刻意不写日志文件、不落库：这一层只负责"让新事件出现在屏幕上"。
+    持久化交给存储层，避免一个进程同时管三件事导致状态混乱。
+    """
+    from .watcher import LogWatcher
+
+    paths = []
+    for f in files:
+        p = Path(f)
+        if not p.exists():
+            print(f"[跳过] 文件不存在：{p}", file=sys.stderr)
+            continue
+        paths.append(p)
+    if not paths:
+        print("没有可跟随的文件。", file=sys.stderr)
+        return 2
+
+    watcher = LogWatcher(paths, config, from_start=from_start)
+    started = datetime.now().strftime("%H:%M:%S")
+    print(f"[{started}] 开始监控 {len(paths)} 个文件，Ctrl-C 退出")
+
+    shown = 0
+
+    def on_finding(f) -> None:
+        nonlocal shown
+        shown += 1
+        ts = f.ts.strftime("%H:%M:%S") if f.ts else "--:--:--"
+        # 判定依据截断：终端宽度有限，完整内容在报告/控制台里看
+        reason = f.reason if len(f.reason) <= 100 else f.reason[:100] + "…"
+        print(f"[{ts}] {_severity_tag(f)} {f.category:<8} {f.ip:<15} {reason}", flush=True)
+
+    try:
+        watcher.run(on_finding=on_finding)
+    except KeyboardInterrupt:
+        snap = watcher.snapshot()
+        print(
+            f"\n已停止。共读 {snap['lines_read']} 行，"
+            f"推送告警 {snap['findings_total']} 条，"
+            f"抑制 {snap['suppressed_total']} 条。"
+        )
+    finally:
+        watcher.close()
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,6 +88,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--threshold", type=int, default=None, help="404 触发阈值（次）")
     ap.add_argument("--ocsf", action="store_true",
                     help="额外导出一份 OCSF JSONL（可被其他 SIEM 直接消费）")
+    ap.add_argument("--tail", action="store_true",
+                    help="实时模式：持续跟随文件，边读边出告警（Ctrl-C 退出）")
+    ap.add_argument("--from-start", action="store_true",
+                    help="配合 --tail：从文件开头读，而不是从末尾")
     args = ap.parse_args(argv)
 
     config = Config.from_env()
@@ -36,6 +102,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.no_ai:
         config.ai_enabled = False
 
+    if args.tail:
+        return _run_tail(args.files, config, from_start=args.from_start)
+
     exit_code = 0
     for path in args.files:
         p = Path(path)
@@ -43,7 +112,6 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[跳过] 文件不存在：{p}", file=sys.stderr)
             exit_code = 2
             continue
-
         result = analyze_file(p, config)
         stem = Path(f"{args.out}_{p.stem}")
         # 输出目录可能不存在（比如 --out reports/demo），先建出来再写
