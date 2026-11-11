@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 from .config import Config
+from .ocsf import to_jsonl
 from .pipeline import analyze_file
 from .reporter import to_csv, to_html, to_markdown
 
@@ -23,6 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--no-ai", action="store_true", help="只做规则检测，不调大模型")
     ap.add_argument("--window", type=int, default=None, help="404 扫描检测窗口（秒）")
     ap.add_argument("--threshold", type=int, default=None, help="404 触发阈值（次）")
+    ap.add_argument("--ocsf", action="store_true",
+                    help="额外导出一份 OCSF JSONL（可被其他 SIEM 直接消费）")
     args = ap.parse_args(argv)
 
     config = Config.from_env()
@@ -48,6 +51,13 @@ def main(argv: list[str] | None = None) -> int:
         Path(f"{stem}.md").write_text(to_markdown(result), encoding="utf-8")
         Path(f"{stem}.html").write_text(to_html(result), encoding="utf-8")
         Path(f"{stem}.csv").write_text(to_csv(result), encoding="utf-8-sig")
+        if args.ocsf:
+            # 事件在前、告警在后，不是随便排的：
+            # 下游按行流式消费时，通常先建事件索引再关联告警，
+            # 顺序反了会出现"告警引用了尚未入库的事件"。
+            Path(f"{stem}.jsonl").write_text(
+                to_jsonl(result.entries, result.findings), encoding="utf-8"
+            )
 
         print(f"\n=== {p.name} ===")
         print(f"解析 {len(result.entries)} 行，告警 {len(result.findings)} 条，"
