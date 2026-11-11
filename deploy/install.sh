@@ -12,6 +12,19 @@
 # 幂等：重复执行只会更新代码和配置，不会覆盖已生成的密码与密钥。
 set -euo pipefail
 
+# 关掉 Debian/Ubuntu 的几个自动交互，否则脚本会莫名停在半路。
+#
+# NEEDRESTART_SUSPEND：Ubuntu 22.04+ 装了 needrestart 之后，
+#   每次 apt 操作结束都会扫描"哪些服务需要重启"，并可能弹出全屏交互界面
+#   等用户选择。在自动化脚本里这一步会卡住，输出停在
+#   "Scanning processes... Restarting services..." 看起来像死机。
+#   更糟的是它可能真的去重启 sshd，把正在执行的 SSH 会话切断。
+# NEEDRESTART_MODE=l：只列出，不做任何动作。两个变量都设，双保险。
+# DEBIAN_FRONTEND：防止个别包弹 dpkg 配置对话框。
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_SUSPEND=1
+export NEEDRESTART_MODE=l
+
 APP_DIR=/opt/sec-log-analyzer
 APP_USER=seclog
 REPO=https://github.com/kabaker915/sec-log-analyzer.git
