@@ -95,12 +95,28 @@ class _FileTail:
         self.inode: int | None = None
         self.partial = b""          # 上一轮读到的残行（无换行结尾）
         self._fh = None
+        self._from_start = from_start
         self._open(from_start)
 
     def _open(self, from_start: bool) -> None:
         if self._fh:
             self._fh.close()
-        self._fh = open(self.path, "rb")
+            self._fh = None
+        try:
+            self._fh = open(self.path, "rb")
+        except FileNotFoundError:
+            # 文件还不存在是**正常情况**，不是错误。
+            # 三种常见场景：
+            #   1. 服务先于应用启动，日志文件还没被创建
+            #   2. logrotate 的 create 策略在旧文件删除和新文件创建之间有间隙
+            #   3. 用户传错了路径，但他希望先跑起来再补
+            # 原实现在这里直接抛异常，整个应用起不来 ——
+            # 一个"日志文件暂时不在"就让监控系统崩溃，是最不该有的失败模式。
+            # 改为标记为未就绪，每轮 poll 重试。
+            self._fh = None
+            self.offset = 0
+            self.partial = b""
+            return
         st = os.fstat(self._fh.fileno())
         self.inode = st.st_ino
         if from_start:
@@ -134,12 +150,20 @@ class _FileTail:
         不限量读取会把内存打爆 —— 而攻击者知道这一点，
         制造海量日志本来就是一种让监控失效的手段。
         """
+        # 上一轮没打开（文件当时不存在），这一轮再试一次
+        if self._fh is None:
+            self._open(self._from_start)
+            if self._fh is None:
+                return [], False
+
         rotated = False
         if self._rotated():
             rotated = True
             try:
                 self._open(from_start=True)
             except FileNotFoundError:
+                return [], True
+            if self._fh is None:
                 return [], True
 
         self._fh.seek(self.offset)
@@ -246,6 +270,15 @@ class LogWatcher:
 
         self._tails = {str(p): _FileTail(Path(p), from_start=from_start) for p in paths}
         self._throttle = _Throttle(throttle_ttl)
+        # 已处理过的「同一条告警」：键是 (抑制键, 事件时间戳)。
+        #
+        # 为什么需要它：行为检测每 behavior_interval 秒重扫一次窗口，
+        # 同一段历史会被反复算出完全相同的告警。这些重复如果计入
+        # suppressed_total，这个数字就变成了「扫描次数」而不是
+        # 「被压掉的攻击次数」—— 面板上会出现 160 抑制 / 22 推送 这种比例，
+        # 看起来像抑制过猛，其实只是同一件事被数了 7 遍。
+        # 指标必须反映真实发生的事，不能反映程序内部循环了几次。
+        self._emitted: dict[tuple, float] = {}
         self._last_behavior_run = 0.0
         self._lock = threading.RLock()
         self.stats = WatcherStats()
@@ -393,6 +426,15 @@ class LogWatcher:
         out: list[Finding] = []
         now = time.monotonic()
         for f in findings:
+            # 第一道：完全相同的告警（同规则 + 同 IP + 同事件时间）说明
+            # 只是又扫了一遍同一段历史，不是新命中。静默丢掉，**不计数**。
+            exact = (self._throttle_key(f), f.ts)
+            if exact in self._emitted:
+                continue
+            self._emitted[exact] = now
+
+            # 第二道：同类告警在 TTL 窗口内只推一条，但这一次是真的新命中，
+            # 所以要记进 suppressed_total。
             ok, suppressed = self._throttle.check(self._throttle_key(f), now)
             if not ok:
                 self.stats.suppressed_total += 1
@@ -423,6 +465,12 @@ class LogWatcher:
 
             if time.monotonic() - last_gc > 600:
                 self._throttle.gc()
+                # _emitted 也要清理，否则跑一周会随攻击 IP 数量无限增长。
+                # 一个被全网扫过的公网 IP，一天能见几千个来源。
+                now = time.monotonic()
+                dead = [k for k, t in self._emitted.items() if now - t > 3600]
+                for k in dead:
+                    self._emitted.pop(k, None)
                 last_gc = time.monotonic()
 
             stop_event.wait(interval)

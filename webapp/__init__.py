@@ -77,7 +77,7 @@ def _load_credentials() -> tuple[str, str]:
 
 def create_app(log_paths: list[str] | None = None, *,
                dry_run: bool = True, start_watcher: bool = True,
-               from_start: bool = False) -> Flask:
+               from_start: bool = False, emit_findings: bool = True) -> Flask:
     # 模板和静态资源放在项目根目录的 templates/ static/，
     # 不放进 webapp/ 里面：这样 engine（sec_log_analyzer）和界面完全分离，
     # 前者零依赖、能被命令行和测试直接复用，不会被迫牵扯 webapp 的包结构。
@@ -388,8 +388,26 @@ def create_app(log_paths: list[str] | None = None, *,
         watcher = LogWatcher(log_paths, Config.from_env(), from_start=from_start)
         state.watcher = watcher
 
+        def _emit(f) -> None:
+            """告警同时写进内存（给页面）和终端（给人看）。
+
+            只在页面上显示是不够的：把控制台挂在服务器上跑的时候，
+            人往往是先看 journalctl 的输出，发现异常了才去翻页面。
+            终端里一行一条、带等级标记，比在浏览器里滚动更快。
+            """
+            state.add_finding(f)
+            if not emit_findings:
+                return
+            ts = f.ts.strftime("%H:%M:%S") if f.ts else "--:--:--"
+            tag = {
+                "critical": "[严重]", "high": "[高危]",
+                "medium": "[中危]", "low": "[低危]",
+            }.get(f.severity.value, "[?]")
+            reason = f.reason if len(f.reason) <= 80 else f.reason[:80] + "…"
+            print(f"[{ts}] {tag} {f.category:<8} {f.ip:<15} {reason}", flush=True)
+
         def _run():
-            watcher.run(on_finding=state.add_finding, interval=0.5)
+            watcher.run(on_finding=_emit, interval=0.5)
 
         threading.Thread(target=_run, name="watcher", daemon=True).start()
 

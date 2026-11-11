@@ -30,6 +30,8 @@ def main(argv: list[str] | None = None) -> int:
                     help="不启动日志跟随（只看已有数据，调试界面用）")
     ap.add_argument("--from-start", action="store_true",
                     help="从文件开头读。演示时必须加，否则面板会是空的")
+    ap.add_argument("--access-log", action="store_true",
+                    help="显示每条 HTTP 访问日志（默认关闭，否则刷屏看不到告警）")
     args = ap.parse_args(argv)
 
     if args.host not in ("127.0.0.1", "localhost", "::1"):
@@ -39,6 +41,17 @@ def main(argv: list[str] | None = None) -> int:
             "    并且前面有反向代理做限流。\n",
             file=sys.stderr,
         )
+
+    # 关掉 Werkzeug 的访问日志。
+    #
+    # 不关的话会是这样：页面每 2 秒轮询一次统计、每 5 秒轮询一次封禁列表、
+    # SSE 还在持续连接，终端每秒刷好几行 HTTP 访问记录，
+    # 真正的告警被完全淹没 —— 这跟"告警疲劳"是同一类问题，只是发生在终端里。
+    #
+    # 需要看访问日志时加 --access-log。
+    if not args.access_log:
+        import logging
+        logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
     app = create_app(
         args.log,
