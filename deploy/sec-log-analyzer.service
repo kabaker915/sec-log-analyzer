@@ -1,0 +1,62 @@
+[Unit]
+Description=Web 日志安全控制台
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=seclog
+Group=seclog
+WorkingDirectory=/opt/sec-log-analyzer
+
+# 凭据从 EnvironmentFile 读，不写进 unit 文件。
+# unit 文件是 644 权限、全世界可读的，写进去等于公开密码哈希。
+EnvironmentFile=/etc/sec-log-analyzer.env
+
+# 下面 ProtectSystem=strict 会把 /opt 挂成只读，
+# 解释器想往包里写 __pycache__ 会失败。虽然 Python 会静默跳过，
+# 但每次启动都打一堆告警，日志里全是噪音。直接关掉字节码缓存。
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+
+# --from-start 是为了第一次部署就能看到历史告警。
+# 不加的话服务从文件末尾开始读，面板会一直空着，直到有新请求进来——
+# 在演示场景里会让人以为坏了。
+# 生产环境建议删掉这一行：重启时不该把三个月前的告警重放一遍。
+ExecStart=/opt/sec-log-analyzer/.venv/bin/python run_web.py \
+    --log /var/log/nginx/access.log \
+    --log /var/log/auth.log \
+    --host 127.0.0.1 \
+    --port 8080 \
+    --from-start
+
+Restart=on-failure
+RestartSec=5s
+
+# ---------------------------------------------------------------- 加固
+# 逐条都有明确目的，不是抄模板：
+# NoNewPrivileges  进程无法通过 setuid 提权
+# PrivateTmp       私有 /tmp，防止和其他进程通过临时文件互相干扰
+# ProtectSystem    /usr /boot /etc 只读；/etc 的只读很关键，
+#                  即使被拿 shell 也改不了系统配置
+# ProtectHome      看不到 /home 和 /root
+# ReadWritePaths   只放开它真正需要写的地方（审计日志、封禁表）
+# RestrictAddressFamilies  只允许 IPv4/IPv6/Unix socket，挡住其他协议滥用
+# SystemCallFilter  限制能用的系统调用集
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/sec-log-analyzer/data
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+LockPersonality=true
+RestrictRealtime=true
+
+# 日志走 journald，不自己写文件：自建日志要处理轮转，容易越写越大
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
