@@ -25,6 +25,8 @@
   const rowsEl = document.getElementById("rows");
   const emptyEl = document.getElementById("empty");
   const sevEl = document.getElementById("sev-filter");
+  const dateEl = document.getElementById("date-filter");
+  const sortEl = document.getElementById("sort-by");
   const banRowsEl = document.getElementById("ban-rows");
   const banEmptyEl = document.getElementById("ban-empty");
 
@@ -32,7 +34,6 @@
   const SEV_TEXT = { low: "低", medium: "中", high: "高", critical: "严重" };
 
   let maxSeq = 0;
-  let seenUid = new Set();
 
   /* 建一个单元格。text 一律 string 化后交给 textContent。 */
   function cell(text, className) {
@@ -49,17 +50,39 @@
     return span;
   }
 
-  function passesFilter(sev) {
-    const floor = sevEl.value;
-    if (!floor) return true;
-    return (SEV_ORDER[sev] || 0) >= (SEV_ORDER[floor] || 0);
+  /* 当前列表的数据源。
+     从「直接往 DOM 里塞行」改成「维护一个数组，渲染由 render() 统一做」，
+     是因为加了日期和排序之后，行序不再等于到达顺序：
+     换成按等级排序时，新来的告警该插在中间而不是顶部。
+     一旦 DOM 是唯一数据源，这种重排就没法做了。 */
+  let items = [];
+  let seen = new Set();
+
+  function rowKey(it) {
+    return it.uid + "|" + it.time + "|" + it.path;
   }
 
-  function addRow(item, prepend) {
-    if (seenUid.has(item.uid + "|" + item.time + "|" + item.path)) return;
-    seenUid.add(item.uid + "|" + item.time + "|" + item.path);
-    if (!passesFilter(item.severity)) return;
+  /* epoch -> 本地日期 YYYY-MM-DD。
+     必须用浏览器本地时区，不能直接切字符串：
+     服务端和浏览器如果在不同时区，同一条告警会被归到不同的"天"。 */
+  function itemDate(it) {
+    if (!it.epoch) return "";
+    const d = new Date(it.epoch * 1000);
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
 
+  function passesFilters(it) {
+    const floor = sevEl.value;
+    if (floor && (SEV_ORDER[it.severity] || 0) < (SEV_ORDER[floor] || 0)) return false;
+    const date = dateEl.value;
+    if (date && itemDate(it) !== date) return false;
+    return true;
+  }
+
+  /* 建一行（不插入 DOM）。纯函数，方便重复渲染。 */
+  function buildRow(item) {
     const tr = document.createElement("tr");
     tr.dataset.uid = item.uid;
 
@@ -95,14 +118,43 @@
     tdAct.appendChild(btn);
     tr.appendChild(tdAct);
 
-    if (prepend) rowsEl.prepend(tr);
-    else rowsEl.appendChild(tr);
+    return tr;
+  }
 
-    // 行数上限：长时间开着页面，DOM 无限增长会越来越卡
-    while (rowsEl.children.length > 300) {
-      rowsEl.removeChild(rowsEl.lastChild);
+  /* 按当前筛选和排序，重建整张表。
+     行数上限 300：长时间开着页面，DOM 无限增长会越来越卡。 */
+  function render() {
+    const list = items.filter(passesFilters);
+
+    if (sortEl.value === "severity") {
+      // 等级优先，同等级内新的在上。
+      // 注意不能"先按时间排再整体反转"，那样同等级内的时间顺序也会翻过来。
+      list.sort((a, b) =>
+        (SEV_ORDER[b.severity] || 0) - (SEV_ORDER[a.severity] || 0) ||
+        (b.epoch || 0) - (a.epoch || 0)
+      );
+    } else {
+      list.sort((a, b) => (b.epoch || 0) - (a.epoch || 0));
     }
-    emptyEl.style.display = "none";
+
+    const shown = list.slice(0, 300);
+    rowsEl.replaceChildren();
+    for (const it of shown) rowsEl.appendChild(buildRow(it));
+    emptyEl.style.display = shown.length ? "none" : "";
+  }
+
+  /* SSE 收到新告警。先去重，再推进数组，最后整体重排 —— 
+     不能像以前那样 prepend，否则按等级排序时会插错位置。 */
+  function receive(item) {
+    const k = rowKey(item);
+    if (seen.has(k)) return;
+    seen.add(k);
+    items.unshift(item);
+
+    if (items.length > 800) {
+      for (const x of items.splice(800)) seen.delete(rowKey(x));
+    }
+    render();
   }
 
   /* ---------------------------------------------------------- 热力图 */
@@ -340,7 +392,7 @@
         return; // 心跳或其他非 JSON 消息直接忽略
       }
       if (item.seq) maxSeq = Math.max(maxSeq, item.seq);
-      addRow(item, true);
+      receive(item);
     };
 
     es.onerror = function () {
@@ -351,19 +403,65 @@
   }
 
   /* ---------------------------------------------------------- 初始化 */
-  sevEl.addEventListener("change", () => {
-    // 筛选变化时重建当前列表：清屏最省事，也不用维护两套渲染逻辑
-    rowsEl.replaceChildren();
-    seenUid.clear();
-    fetch("/api/findings?limit=200", { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((d) => (d.items || []).slice().reverse().forEach((x) => addRow(x, false)));
-  });
+
+  /* 拉一次列表。带筛选参数走后端，而不是拉全量到前端过滤 ——
+     历史可能有上千条，全量传到浏览器再筛，流量和内存都浪费。 */
+  async function loadFindings() {
+    const q = new URLSearchParams({ limit: "300", sort: sortEl.value });
+    if (sevEl.value) q.set("severity", sevEl.value);
+    if (dateEl.value) q.set("date", dateEl.value);
+
+    try {
+      const r = await fetch("/api/findings?" + q.toString(), {
+        credentials: "same-origin",
+      });
+      if (r.status === 401) { window.location.href = "/login"; return; }
+      if (!r.ok) return;
+      const d = await r.json();
+      items = d.items || [];
+      seen = new Set(items.map(rowKey));
+      for (const it of items) {
+        if (it.seq) maxSeq = Math.max(maxSeq, it.seq);
+      }
+      render();
+    } catch (e) { /* 网络抖动时保留现有列表，不要清空 */ }
+  }
+
+  /* 日期下拉框。每次刷新都重建选项，但保留用户当前的选择。 */
+  async function refreshDates() {
+    try {
+      const r = await fetch("/api/dates", { credentials: "same-origin" });
+      if (r.status === 401) { window.location.href = "/login"; return; }
+      if (!r.ok) return;
+      const d = await r.json();
+      const cur = dateEl.value;
+
+      dateEl.replaceChildren();
+      const all = document.createElement("option");
+      all.value = "";
+      all.textContent = "全部";
+      dateEl.appendChild(all);
+
+      for (const it of d.items || []) {
+        const o = document.createElement("option");
+        o.value = it.date;
+        o.textContent = it.date + "（" + it.count + "）";
+        dateEl.appendChild(o);
+      }
+      // 保留原选择；如果那天已经没有告警了，会自动回落到"全部"
+      dateEl.value = cur;
+    } catch (e) { /* ignore */ }
+  }
+
+  sevEl.addEventListener("change", loadFindings);
+  dateEl.addEventListener("change", loadFindings);
+  // 排序只影响展示顺序，不需要重新请求后端
+  sortEl.addEventListener("change", render);
 
   document.getElementById("btn-clear").addEventListener("click", () => {
-    rowsEl.replaceChildren();
-    seenUid.clear();
-    emptyEl.style.display = "";
+    items = [];
+    seen = new Set();
+    render();
   });
 
   const ipClose = document.getElementById("ip-close");
@@ -373,13 +471,9 @@
     });
   }
 
-  // 先把已有告警铺一遍，再接实时流
-  fetch("/api/findings?limit=100", { credentials: "same-origin" })
-    .then((r) => r.json())
-    .then((d) => (d.items || []).slice().reverse().forEach((x) => addRow(x, false)))
-    .catch(() => {});
-
   connect();
+  loadFindings();
+  refreshDates();
   refreshStats();
   refreshBans();
   refreshHeatmap();
@@ -388,4 +482,6 @@
   // 热力图 10 秒刷一次就够：它的数据粒度是小时，刷太快没有意义，
   // 反而增加请求量（页面已经每 2 秒在轮询统计了）
   setInterval(refreshHeatmap, 10000);
+  // 日期列表 60 秒刷一次：跨过零点后"今天"才会变成一个可选项
+  setInterval(refreshDates, 60000);
 })();

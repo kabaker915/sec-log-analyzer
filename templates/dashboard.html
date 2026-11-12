@@ -73,12 +73,21 @@
     <div class="panel-head">
       <h2>实时告警</h2>
       <div class="panel-tools">
+        <label class="muted" for="date-filter">日期</label>
+        <select id="date-filter">
+          <option value="">全部</option>
+        </select>
         <label class="muted" for="sev-filter">等级</label>
         <select id="sev-filter">
           <option value="">全部</option>
           <option value="medium">中危以上</option>
           <option value="high">高危以上</option>
           <option value="critical">仅严重</option>
+        </select>
+        <label class="muted" for="sort-by">排序</label>
+        <select id="sort-by">
+          <option value="time">按时间</option>
+          <option value="severity">按等级</option>
         </select>
         <button id="btn-clear" class="btn-ghost" type="button">清屏</button>
       </div>

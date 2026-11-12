@@ -142,12 +142,61 @@ class AppState:
         rows.sort(key=lambda r: r["seq"])
         return rows[:limit]
 
-    def recent(self, limit: int = 100, min_severity: str | None = None) -> list[dict]:
+    def recent(self, limit: int = 100, min_severity: str | None = None,
+               date: str | None = None, sort: str = "time") -> list[dict]:
+        """按条件取出告警。
+
+        date   指定某一天（YYYY-MM-DD），None 表示不限
+        sort   "time" 按时间倒序（最新在上）；"severity" 先按等级再按时间
+
+        为什么排序在后端做而不是前端：前端的 SSE 流只拿到"新来的那几条"，
+        它不知道历史里还有哪些，没法正确排序。要么拉全量到前端排（数据量一大就卡），
+        要么让后端排好再给。选后者。
+        """
         order = ["low", "medium", "high", "critical"]
         floor = order.index(min_severity) if min_severity in order else 0
+
         with self.lock:
             items = list(self.findings)
-        return [r for r in items if order.index(r["severity"]) >= floor][:limit]
+
+        out = []
+        for r in items:
+            if order.index(r.get("severity", "low")) < floor:
+                continue
+            if date and _epoch_date(r.get("epoch")) != date:
+                continue
+            out.append(r)
+
+        if sort == "severity":
+            # 等级优先，同等级内新的在上。
+            # 用负的 ord 值让 "critical" 排最前；不能直接 reverse，
+            # 那样同等级内的时间顺序也会跟着反过来。
+            out.sort(key=lambda r: (-order.index(r.get("severity", "low")),
+                                    -(r.get("epoch") or 0)))
+        else:
+            out.sort(key=lambda r: -(r.get("epoch") or 0))
+
+        return out[:limit]
+
+    def dates(self) -> list[dict]:
+        """列出有告警的日期及条数，供日期下拉框使用。
+
+        按日期倒序：看的时候总是先关心最近那天。
+        日期用本地时区换算 —— 服务器和浏览器都在东八区时结果一致；
+        如果部署在 UTC 机器上，这里的"天"会和用户看到的差几小时，
+        所以后端不自己拼日期字符串，统一走 _epoch_date。
+        """
+        with self.lock:
+            items = list(self.findings)
+        counter: dict[str, int] = {}
+        for r in items:
+            d = _epoch_date(r.get("epoch"))
+            if d:
+                counter[d] = counter.get(d, 0) + 1
+        return [
+            {"date": d, "count": c}
+            for d, c in sorted(counter.items(), reverse=True)
+        ]
 
     # ---------------------------------------------------------------- 聚合
     def heatmap(self, hours: int = 24) -> dict:
@@ -312,6 +361,21 @@ def _compact(path: Path, keep: int = 2000) -> None:
         fh.flush()
         os.fsync(fh.fileno())
     os.replace(tmp, path)
+
+
+def _epoch_date(epoch) -> str:
+    """epoch 秒 -> 本地日期字符串 YYYY-MM-DD。
+
+    单独抽出来是因为有三处要用（列表筛选、日期下拉、详情页），
+    各自写一遍 datetime 换算，早晚会在时区或格式化上不一致。
+    """
+    try:
+        e = float(epoch or 0)
+    except (TypeError, ValueError):
+        return ""
+    if e <= 0:
+        return ""
+    return datetime.fromtimestamp(e).strftime("%Y-%m-%d")
 
 
 def finding_row(f: Finding) -> dict:

@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import os
+import re
 import secrets
 import threading
 import time
@@ -49,6 +50,11 @@ from .state import AppState, apply_deny_file, audit
 # 会话闲置超时。安全工具的后台不该"打开一次管一天"：
 # 分析师离开工位忘关浏览器是很常见的，8 小时是个折中。
 SESSION_IDLE_SECONDS = 8 * 3600
+
+# 日期参数的合法形状。用正则而不是 strptime：
+# 正则先挡住明显不对的输入（超长、带特殊字符），成本更低，
+# 而且不需要构造 datetime 对象就能判完。
+_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 def _load_credentials() -> tuple[str, str]:
@@ -322,8 +328,25 @@ def create_app(log_paths: list[str] | None = None, *,
         if gate:
             return gate
         limit = min(int(request.args.get("limit", 100)), 500)
-        sev = request.args.get("severity")
-        return jsonify({"items": state.recent(limit, sev)})
+        sev = request.args.get("severity") or None
+        # 日期参数必须严格校验成 YYYY-MM-DD，否则会被当成任意字符串
+        # 拼进筛选逻辑。这里不涉及 SQL，但仍然要保证输入是"日期"这个类型，
+        # 否则前端传个空串就会把筛选搞乱。
+        date = request.args.get("date") or None
+        if date and not _DATE_RE.match(date):
+            return jsonify({"error": "日期格式应为 YYYY-MM-DD"}), 400
+        sort = request.args.get("sort") or "time"
+        if sort not in ("time", "severity"):
+            return jsonify({"error": "sort 只支持 time 或 severity"}), 400
+        return jsonify({"items": state.recent(limit, sev, date, sort)})
+
+    @app.get("/api/dates")
+    def api_dates():
+        """有告警的日期列表，供热力图和日期下拉框使用。"""
+        gate = api_gate()
+        if gate:
+            return gate
+        return jsonify({"items": state.dates()})
 
     @app.get("/api/stream")
     def api_stream():
