@@ -75,6 +75,44 @@ def _load_credentials() -> tuple[str, str]:
     return user, hash_password(password)
 
 
+def _expand_log_paths(patterns: list[str]) -> list[str]:
+    """把 `--log` 传进来的路径展开成实际文件列表，按修改时间旧→新排序。
+
+    三种输入都要支持：
+      * 普通路径        /var/log/nginx/access.log
+      * 通配符          /var/log/nginx/access.log*      （含 .1、.2.gz）
+      * 目录            /var/log/nginx                  （目录下所有 .log）
+
+    .gz 直接跳过：压缩文件不能增量跟随（读到底就没法再追加判断），
+    历史 .gz 属于离线分析的范围，交给 CLI 处理。
+    """
+    import glob as _glob
+
+    out: list[tuple[float, str]] = []
+    for pattern in patterns:
+        p = Path(pattern)
+        if p.is_dir():
+            matches = [str(x) for x in p.glob("*.log*")]
+        elif any(c in pattern for c in "*?["):
+            matches = _glob.glob(pattern)
+        else:
+            matches = [pattern]
+
+        for m in matches:
+            if m.endswith(".gz"):
+                print(f"[跳过] {m} 是压缩文件，历史 .gz 请用 CLI 离线分析", flush=True)
+                continue
+            if not Path(m).exists():
+                continue
+            try:
+                out.append((os.path.getmtime(m), m))
+            except OSError:
+                continue
+
+    out.sort(key=lambda x: x[0])
+    return [m for _, m in out] or list(patterns)
+
+
 def create_app(log_paths: list[str] | None = None, *,
                dry_run: bool = True, start_watcher: bool = True,
                from_start: bool = False, emit_findings: bool = True) -> Flask:
@@ -111,6 +149,12 @@ def create_app(log_paths: list[str] | None = None, *,
 
     username, password_hash = _load_credentials()
     state = AppState(dry_run=dry_run)
+    # 先把上次运行的告警读回来，再接新的。
+    # 顺序不能反：先接新告警的话，回填时 appendleft 会把新告警挤到后面，
+    # 页面上看起来像是「历史盖住了现在」。
+    restored = state.load_persisted()
+    if restored:
+        print(f"[启动] 已回填上次运行的 {restored} 条告警", flush=True)
     throttle = LoginThrottle()
     app.extensions["state"] = state
 
@@ -382,10 +426,21 @@ def create_app(log_paths: list[str] | None = None, *,
 
     # ------------------------------------------------------------ 后台线程
     if start_watcher and log_paths:
+        # 展开通配符，并把文件按修改时间从旧到新排好。
+        #
+        # 为什么需要这一步：日志轮转后，昨天的数据在 access.log.1 里，
+        # 只跟 access.log 就永远只能看到轮转之后的内容 ——
+        # 一个「监控」工具看不到昨天的数据，等于只能监控当下，
+        # 任何复盘都没法做。
+        #
+        # 排序方向很重要：必须旧文件先读。反过来的话，
+        # 缓冲区里时间最新的反而在最后，行为检测的窗口基准会错。
+        expanded = _expand_log_paths(log_paths)
+
         # from_start=True 是为了演示：默认从文件末尾开始读（生产环境重启后
         # 不该把历史告警重放一遍），但演示时要立刻看到已有内容，
         # 否则打开页面一片空白，看着像坏了。
-        watcher = LogWatcher(log_paths, Config.from_env(), from_start=from_start)
+        watcher = LogWatcher(expanded, Config.from_env(), from_start=from_start)
         state.watcher = watcher
 
         def _emit(f) -> None:

@@ -77,6 +77,45 @@ class AppState:
             self.seq += 1
             row["seq"] = self.seq
             self.findings.appendleft(row)
+        _persist_row(row)
+
+    def load_persisted(self, limit: int = 2000) -> int:
+        """把上次运行留下的告警读回内存。
+
+        为什么必须落盘：告警原本只存在 deque 里，进程一重启就全没了。
+        而「监控」工具最常被问的问题是「昨天下午那次扫描还在吗」——
+        重启一次就查不到，等于没有历史。
+
+        只回填最近 limit 条：更早的属于归档，翻页查全量是数据库的活，
+        不该由一个内存展示层承担。
+        """
+        path = DATA_DIR / "findings.jsonl"
+        if not path.exists():
+            return 0
+        rows: list[dict] = []
+        try:
+            with path.open("r", encoding="utf-8") as fh:
+                for line in fh:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rows.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        # 单行损坏不该影响整体。写入过程中断电会留下半行，
+                        # 跳过它比整个文件读不出来要好。
+                        continue
+        except OSError:
+            return 0
+
+        rows = rows[-limit:]
+        with self.lock:
+            # appendleft 所以倒序回填，保证最新的在最前面
+            for r in reversed(rows):
+                self.findings.appendleft(r)
+            if rows:
+                self.seq = max(int(r.get("seq", 0)) for r in rows)
+        return len(rows)
 
     def since(self, last_seq: int, limit: int = 50) -> list[dict]:
         """取出 seq 大于 last_seq 的告警，按时间正序返回。"""
@@ -141,6 +180,51 @@ class AppState:
         for ip in expired:
             audit("expire", ip=ip)
         return len(expired)
+
+
+# ---------------------------------------------------------------------------
+# 告警落盘
+# ---------------------------------------------------------------------------
+_persist_lock = threading.Lock()
+_MAX_FILE_BYTES = 4 * 1024 * 1024   # 超过就精简重写
+
+
+def _persist_row(row: dict) -> None:
+    """把一条告警追加到 data/findings.jsonl。
+
+    用 JSONL 而不是 SQLite：这一层的用途只是「重启后能翻到刚才那几条」，
+    不是检索。为了翻页引入数据库、schema、迁移，成本远大于收益。
+
+    什么时候该换成 SQLite：需要按任意字段组合查询、或者数据量到几十万条。
+    现在一天几百条，JSONL 完全够。
+    """
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    path = DATA_DIR / "findings.jsonl"
+    line = json.dumps(row, ensure_ascii=False)
+    with _persist_lock:
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(line + "\n")
+        try:
+            if path.stat().st_size > _MAX_FILE_BYTES:
+                _compact(path)
+        except OSError:
+            pass
+
+
+def _compact(path: Path, keep: int = 2000) -> None:
+    """文件太大时只保留最近 keep 行。
+
+    同样是原子替换：直接重写会在写到一半时被读到，
+    那一刻的历史是空的。审计日志和告警一样，不能有「部分可见」的中间态。
+    """
+    lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    tail = lines[-keep:]
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), suffix=".tmp")
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write("\n".join(tail) + "\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
 
 
 def finding_row(f: Finding) -> dict:

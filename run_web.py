@@ -20,7 +20,8 @@ from webapp import create_app
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="日志安全控制台")
     ap.add_argument("--log", action="append", default=[], required=True,
-                    help="要监控的日志文件，可重复传")
+                    help="要监控的日志文件，可重复传。支持通配符和目录，"
+                         "例如 '/var/log/nginx/access.log*' 会连轮转文件一起读")
     ap.add_argument("--host", default="127.0.0.1",
                     help="监听地址，默认仅本机")
     ap.add_argument("--port", type=int, default=8080)

@@ -23,9 +23,13 @@ Environment=PYTHONUNBUFFERED=1
 # 不加的话服务从文件末尾开始读，面板会一直空着，直到有新请求进来——
 # 在演示场景里会让人以为坏了。
 # 生产环境建议删掉这一行：重启时不该把三个月前的告警重放一遍。
+# 路径带 * 是故意的：日志轮转后昨天的数据在 access.log.1 里，
+# 只跟 access.log 就永远只能看到轮转之后的，任何复盘都做不了。
+# 程序内部会展开通配符并按修改时间从旧到新排序；
+# .gz 会被自动跳过（压缩文件不能增量跟随，历史交给 CLI 离线分析）。
 ExecStart=/opt/sec-log-analyzer/.venv/bin/python run_web.py \
-    --log /var/log/nginx/access.log \
-    --log /var/log/auth.log \
+    --log "/var/log/nginx/access.log*" \
+    --log "/var/log/auth.log*" \
     --host 127.0.0.1 \
     --port 8080 \
     --from-start
