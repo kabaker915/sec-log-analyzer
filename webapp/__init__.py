@@ -417,6 +417,30 @@ def create_app(log_paths: list[str] | None = None, *,
             apply_deny_file([r["ip"] for r in state.active_bans()])
         return jsonify({"ok": ok})
 
+    @app.get("/api/heatmap")
+    def api_heatmap():
+        """最近 24 小时的告警分布，供热力图使用。"""
+        gate = api_gate()
+        if gate:
+            return gate
+        return jsonify(state.heatmap(24))
+
+    @app.get("/api/ip/<ip>")
+    def api_ip_detail(ip: str):
+        """某个来源的完整时间线。
+
+        ⚠️ ip 来自 URL，必须过 parse_ip 白名单校验。
+        这个值会出现在 JSON 里、被前端插进 DOM，虽然是 textContent 渲染，
+        但仍然不该让任意字符串流进来 —— 白名单校验一行代码，换掉一整类风险。
+        """
+        gate = api_gate()
+        if gate:
+            return gate
+        safe = parse_ip(ip)
+        if not safe:
+            return jsonify({"error": "IP 格式不合法"}), 400
+        return jsonify(state.by_ip(safe))
+
     @app.get("/api/bans")
     def api_bans():
         gate = api_gate()

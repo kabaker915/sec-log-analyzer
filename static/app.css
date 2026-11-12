@@ -277,3 +277,71 @@ button { font: inherit; }
   color: var(--muted);
   font-size: 13px;
 }
+
+/* ------------------------------------------------------------ 热力图 */
+/* 用纯 CSS 网格画 24 小时 × 4 等级的格子。
+   之所以不引图表库：这只需要 96 个方块，加一个几百 KB 的依赖
+   换来的是"看起来专业"，而浏览器原生网格更轻、也更容易讲清楚。 */
+
+.heat-wrap { padding: 14px 16px 6px; }
+
+.heat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+
+.heat-label {
+  width: 32px;
+  flex: none;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.heat-cells { display: flex; gap: 3px; flex: 1; }
+
+.heat-cell {
+  flex: 1;
+  height: 18px;
+  border-radius: 3px;
+  background: #f1efe8;
+}
+
+/* 五档深浅：0 表示没有告警，4 最深。
+   同一个格子不管哪个等级，深浅含义一致（越多越深），
+   等级只体现在悬停提示和颜色上 —— 混用两种编码会让人读错。 */
+.h0 { background: #f1efe8; }
+.h1 { background: #d3d1c7; }
+.h2 { background: #f09595; }
+.h3 { background: #e24b4a; }
+.h4 { background: #a32d2d; }
+
+.s-low.h2, .s-low.h3, .s-low.h4 { background: #b4b2a9; }
+.s-medium.h2 { background: #f7c1c1; }
+.s-medium.h3 { background: #f09595; }
+.s-medium.h4 { background: #e24b4a; }
+
+.heat-axis { display: flex; gap: 3px; padding-left: 40px; }
+.heat-tick {
+  flex: 1;
+  font-size: 10px;
+  color: var(--tertiary, #9ca3af);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ IP 链接 */
+.ip-link {
+  cursor: pointer;
+  border-bottom: 1px dashed #c7c9cd;
+}
+.ip-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+.ip-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+}
+.ip-meta-item { white-space: nowrap; }
+
+#ip-panel h2 .mono { font-size: 13px; color: var(--accent); }

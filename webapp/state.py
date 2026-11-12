@@ -109,6 +109,24 @@ class AppState:
             return 0
 
         rows = rows[-limit:]
+        # 老版本落盘的记录没有 epoch 字段（那时还没加），
+        # 直接跳过会让热力图和详情少统计一部分数据，而且没有任何提示。
+        # 这里按 "月-日 时:分:秒" 反推出来，年份取当前年。
+        #
+        # 跨年会有歧义：12-31 的记录在 1 月读出来会被算成今年的 12-31（未来）。
+        # 用「比现在晚一天以上就减一年」来兜，和解析层处理 syslog 年份是同一个思路。
+        now = datetime.now()
+        for r in rows:
+            if r.get("epoch"):
+                continue
+            t = r.get("time") or ""
+            try:
+                dt = datetime.strptime(f"{now.year}-{t}", "%Y-%m-%d %H:%M:%S")
+                if (dt - now).days > 1:
+                    dt = dt.replace(year=now.year - 1)
+                r["epoch"] = dt.timestamp()
+            except ValueError:
+                r["epoch"] = 0
         with self.lock:
             # appendleft 所以倒序回填，保证最新的在最前面
             for r in reversed(rows):
@@ -130,6 +148,75 @@ class AppState:
         with self.lock:
             items = list(self.findings)
         return [r for r in items if order.index(r["severity"]) >= floor][:limit]
+
+    # ---------------------------------------------------------------- 聚合
+    def heatmap(self, hours: int = 24) -> dict:
+        """最近 N 小时 × 严重等级 的告警分布。
+
+        为什么不按「日期 + 小时」做：那样格子数是天数的 24 倍，
+        跑三天就是 72 列，屏幕上挤成一团。
+        只看「最近 24 小时」，横轴永远是 24 格，一眼能读完。
+
+        时间轴用的是**事件时间**（epoch），不是入库时间。
+        否则昨天补跑一次历史日志，所有格子会挤在当前这一小时里，
+        看着像「攻击集中在今早」，其实是重放。
+        """
+        now = time.time()
+        order = ["low", "medium", "high", "critical"]
+        # matrix[severity][hour_index]
+        matrix = {s: [0] * hours for s in order}
+        totals = [0] * hours
+
+        with self.lock:
+            items = list(self.findings)
+
+        for r in items:
+            epoch = r.get("epoch")
+            if not epoch:
+                continue
+            delta = now - float(epoch)
+            if delta < 0 or delta >= hours * 3600:
+                continue
+            # 越新的越靠右：idx = hours-1 是「最近一小时」
+            idx = hours - 1 - int(delta // 3600)
+            if not (0 <= idx < hours):
+                continue
+            sev = r.get("severity", "low")
+            if sev in matrix:
+                matrix[sev][idx] += 1
+                totals[idx] += 1
+
+        return {
+            "hours": hours,
+            "labels": [(int((now - (hours - 1 - i) * 3600) // 3600)) % 24
+                       for i in range(hours)],
+            "totals": totals,
+            "matrix": matrix,
+            "max": max(totals) if totals else 0,
+        }
+
+    def by_ip(self, ip: str, limit: int = 200) -> dict:
+        """某个来源 IP 的完整时间线。
+
+        这是「点开一个来源，看他到底干了什么」的入口。
+        比在地图上标个点有用得多 —— 地图只能说明他在哪，
+        时间线能说明他试了什么、什么时候来的、来几次。
+        """
+        with self.lock:
+            items = [r for r in self.findings if r.get("ip") == ip]
+        # 按时间正序，看起来像一条时间线
+        items.sort(key=lambda r: r.get("epoch") or 0)
+        cats: dict[str, int] = {}
+        for r in items:
+            cats[r["category"]] = cats.get(r["category"], 0) + 1
+        return {
+            "ip": ip,
+            "count": len(items),
+            "first_seen": items[0].get("time") if items else None,
+            "last_seen": items[-1].get("time") if items else None,
+            "categories": cats,
+            "items": items[-limit:],
+        }
 
     # ---------------------------------------------------------------- 封禁
     def ban(self, ip: str, reason: str, ttl: int, operator: str,
@@ -237,6 +324,9 @@ def finding_row(f: Finding) -> dict:
     return {
         "uid": f"{'+'.join(sorted(f.rule_names))}:{f.ip}",
         "time": f.ts.strftime("%m-%d %H:%M:%S") if f.ts else "",
+        # epoch 单独留一份：前端要算时间轴，用字符串解析日期既慢又容易出错
+        # （"11-11 09:15:10" 没有年份，跨年就废了）。
+        "epoch": f.ts.timestamp() if f.ts else 0,
         "ip": f.ip,
         "category": f.category,
         "severity": f.severity.value,

@@ -67,7 +67,18 @@
     const tdSev = document.createElement("td");
     tdSev.appendChild(badge(item.severity));
     tr.appendChild(tdSev);
-    tr.appendChild(cell(item.ip, "mono"));
+
+    // IP 做成可点击：点开后看这个来源的完整时间线。
+    // 用 span + click 而不是 <a href>，是因为不需要跳转、也不该出现在历史记录里。
+    const tdIp = cell("", "mono");
+    const ipEl = document.createElement("span");
+    ipEl.className = "ip-link";
+    ipEl.textContent = item.ip;
+    ipEl.title = "点击查看该来源的完整时间线";
+    ipEl.addEventListener("click", () => showIpDetail(item.ip));
+    tdIp.appendChild(ipEl);
+    tr.appendChild(tdIp);
+
     tr.appendChild(cell(item.category));
 
     // 判定依据可能很长，用 title 属性放全文（属性值不会被解析成标签）
@@ -92,6 +103,115 @@
       rowsEl.removeChild(rowsEl.lastChild);
     }
     emptyEl.style.display = "none";
+  }
+
+  /* ---------------------------------------------------------- 热力图 */
+  const HEAT_ORDER = ["critical", "high", "medium", "low"];
+  const HEAT_NAME = { critical: "严重", high: "高危", medium: "中危", low: "低危" };
+
+  async function refreshHeatmap() {
+    try {
+      const r = await fetch("/api/heatmap", { credentials: "same-origin" });
+      if (r.status === 401) { window.location.href = "/login"; return; }
+      if (!r.ok) return;
+      const d = await r.json();
+      renderHeatmap(d);
+    } catch (e) { /* 热力图失败不影响主流程 */ }
+  }
+
+  function renderHeatmap(d) {
+    const rowsEl = document.getElementById("heat-rows");
+    const axisEl = document.getElementById("heat-axis");
+    if (!rowsEl) return;
+
+    // 颜色深浅用 CSS 类（h0~h4）而不是内联 style ——
+    // CSP 的 style-src 'self' 会拦掉 style 属性，用类名最稳，
+    // 也不用为了一个热力图开 'unsafe-inline'。
+    const max = d.max || 1;
+
+    rowsEl.replaceChildren();
+    for (const sev of HEAT_ORDER) {
+      const row = document.createElement("div");
+      row.className = "heat-row";
+
+      const label = document.createElement("span");
+      label.className = "heat-label";
+      label.textContent = HEAT_NAME[sev];
+      row.appendChild(label);
+
+      const cells = document.createElement("div");
+      cells.className = "heat-cells";
+      (d.matrix[sev] || []).forEach((n, i) => {
+        const c = document.createElement("span");
+        const lvl = n === 0 ? 0 : Math.min(4, Math.ceil((n / max) * 4));
+        c.className = "heat-cell h" + lvl + " s-" + sev;
+        c.title = `${HEAT_NAME[sev]} · ${n} 条`;
+        cells.appendChild(c);
+      });
+      row.appendChild(cells);
+      rowsEl.appendChild(row);
+    }
+
+    axisEl.replaceChildren();
+    (d.labels || []).forEach((h, i) => {
+      const t = document.createElement("span");
+      t.className = "heat-tick";
+      // 每 3 小时标一次，全标会挤成一团看不清
+      t.textContent = i % 3 === 0 ? String(h).padStart(2, "0") : "";
+      axisEl.appendChild(t);
+    });
+
+    const total = (d.totals || []).reduce((a, b) => a + b, 0);
+    const note = document.getElementById("heat-note");
+    if (note) {
+      note.textContent = total
+        ? `最近 24 小时共 ${total} 条 · 峰值 ${max} 条/小时`
+        : "最近 24 小时暂无告警";
+    }
+  }
+
+  /* ---------------------------------------------------------- 来源时间线 */
+  async function showIpDetail(ip) {
+    const r = await fetch("/api/ip/" + encodeURIComponent(ip), {
+      credentials: "same-origin",
+    });
+    if (r.status === 401) { window.location.href = "/login"; return; }
+    if (!r.ok) return;
+    const d = await r.json();
+
+    document.getElementById("ip-title").textContent = d.ip;
+    document.getElementById("ip-panel").hidden = false;
+
+    const meta = document.getElementById("ip-meta");
+    meta.replaceChildren();
+    const add = (k, v) => {
+      const s = document.createElement("span");
+      s.className = "ip-meta-item";
+      s.textContent = k + " " + v;
+      meta.appendChild(s);
+    };
+    add("告警", d.count + " 条");
+    add("首次", d.first_seen || "-");
+    add("最近", d.last_seen || "-");
+    const cats = Object.entries(d.categories || {})
+      .map(([k, v]) => k + "×" + v)
+      .join("、");
+    if (cats) add("类型", cats);
+
+    const rows = document.getElementById("ip-rows");
+    rows.replaceChildren();
+    for (const it of d.items || []) {
+      const tr = document.createElement("tr");
+      tr.appendChild(cell(it.time, "mono"));
+      const td = document.createElement("td");
+      td.appendChild(badge(it.severity));
+      tr.appendChild(td);
+      tr.appendChild(cell(it.category));
+      const tdR = cell(it.reason, "reason");
+      tdR.title = it.reason + "\n\n原始日志：\n" + it.raw;
+      tr.appendChild(tdR);
+      rows.appendChild(tr);
+    }
   }
 
   /* ---------------------------------------------------------- 统计数据 */
@@ -246,6 +366,13 @@
     emptyEl.style.display = "";
   });
 
+  const ipClose = document.getElementById("ip-close");
+  if (ipClose) {
+    ipClose.addEventListener("click", () => {
+      document.getElementById("ip-panel").hidden = true;
+    });
+  }
+
   // 先把已有告警铺一遍，再接实时流
   fetch("/api/findings?limit=100", { credentials: "same-origin" })
     .then((r) => r.json())
@@ -255,6 +382,10 @@
   connect();
   refreshStats();
   refreshBans();
+  refreshHeatmap();
   setInterval(refreshStats, 2000);
   setInterval(refreshBans, 5000);
+  // 热力图 10 秒刷一次就够：它的数据粒度是小时，刷太快没有意义，
+  // 反而增加请求量（页面已经每 2 秒在轮询统计了）
+  setInterval(refreshHeatmap, 10000);
 })();

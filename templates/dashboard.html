@@ -39,6 +39,38 @@
 
   <section class="panel">
     <div class="panel-head">
+      <h2>最近 24 小时告警分布</h2>
+      <span class="muted" id="heat-note">横轴为小时，颜色越深表示该时段告警越多</span>
+    </div>
+    <div class="heat-wrap">
+      <div class="heat-rows" id="heat-rows"></div>
+      <div class="heat-axis" id="heat-axis"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="ip-panel" hidden>
+    <div class="panel-head">
+      <h2>来源详情 <span class="mono" id="ip-title"></span></h2>
+      <button id="ip-close" class="btn-ghost" type="button">关闭</button>
+    </div>
+    <div class="ip-meta" id="ip-meta"></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="col-time">时间</th>
+            <th class="col-sev">等级</th>
+            <th class="col-cat">类型</th>
+            <th>判定依据</th>
+          </tr>
+        </thead>
+        <tbody id="ip-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
       <h2>实时告警</h2>
       <div class="panel-tools">
         <label class="muted" for="sev-filter">等级</label>
