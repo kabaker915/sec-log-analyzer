@@ -7,6 +7,41 @@
 
 ---
 
+## 目录结构
+
+```
+sec-log-analyzer/
+├── sec_log_analyzer/     核心引擎：解析 / 规则 / 检测 / 实时跟随 / OCSF 导出
+│                         零第三方依赖，命令行版只靠标准库
+├── webapp/               Web 控制台：Flask 应用、状态管理、鉴权与安全原语
+├── agents/               告警研判 Agent：工具集、循环、本地/云端模型适配
+├── static/ templates/    前端资源（Flask 默认查找路径，不要移动）
+│
+├── run_web.py            Web 入口（systemd 引用此路径，不要改名）
+│
+├── tests/                测试：Web 安全（44 项）、Agent（20 项）、靶场自检
+├── tools/                脚本：脱敏、容量测算、评分、公开前检查、本地模型自检
+├── bench/                评测：语料生成、误报漏报评估
+├── labs/                 靶场：手写 socket 服务器 + 9 类攻击模拟
+├── samples/              脱敏后的日志样本（可公开）
+├── deploy/               部署：systemd unit、安装脚本、蜜罐环境
+├── examples/             早期练习与历史入口（不参与运行）
+│
+├── archive/              [不入库] 从服务器拉回的真实日志
+├── reports/              [不入库] 生成的报告与中间产物
+└── data/                 [不入库] 控制台状态：审计日志、封禁记录、告警落盘
+```
+
+三条边界：
+
+- **核心引擎零依赖**：删掉 `webapp/`、`static/`、`templates/`、`run_web.py`，
+  剩下的仍然是完整的命令行工具。
+- **真实数据不入库**：`archive/` `reports/` `data/` 都在 `.gitignore` 里。
+  要公开日志必须先跑 `tools/anonymize_log.py` 脱敏到 `samples/`。
+- **`examples/` 不参与运行**：里面是早期 Streamlit 入口和练习脚本，
+  保留是为了可追溯，删掉不影响任何功能。
+
+
 ## 快速开始
 
 ### 方式一：命令行（零依赖）
@@ -14,13 +49,13 @@
 检测引擎只用 Python 标准库，**不需要 pip install 任何东西**：
 
 ```bash
-python -m sec_log_analyzer.cli access.log auth.log --no-ai --out reports/demo
+python -m sec_log_analyzer.cli samples/access_2026-10-15.synthetic.log samples/auth_2026-10-15.synthetic.log --no-ai --out reports/demo
 ```
 
 输出：
 
 ```
-=== access.log ===
+=== access_2026-10-15.synthetic.log ===
 解析 12 行，告警 8 条，耗时 2ms
   - SQL注入: 2
   - 敏感文件探测: 2
@@ -30,14 +65,32 @@ python -m sec_log_analyzer.cli access.log auth.log --no-ai --out reports/demo
 报告已写入 reports/demo_access.md / .html / .csv
 ```
 
-### 方式二：网页界面
+### 方式二：Web 控制台
 
 ```bash
-pip install -r requirements.txt
-streamlit run app.py
+pip install -r requirements.txt     # 只有控制台需要 Flask
+python run_web.py --log samples/access_2026-11-11.sample.log --port 8080 --from-start
 ```
 
-浏览器打开 <http://localhost:8501>，上传日志文件即可。
+浏览器打开 <http://127.0.0.1:8080>，首次启动会打印临时口令。
+
+控制台能做：实时告警流（SSE）、按日期/等级筛选、24 小时热力图、点 IP 看时间线、按 IP 封禁（默认演练模式带 TTL）。
+
+### 方式三：告警研判 Agent
+
+```bash
+# 单条研判 + 追问（不需要任何模型，走规则替身）
+python -m agents.app chat --index 0
+
+# 批量研判（按 IP 聚合）
+python -m agents.app batch --limit 10
+
+# 接本地模型（需先装 Ollama，见 agents/README.md）
+python -m agents.app chat --index 0 --local
+```
+
+Agent 会查日志、查该 IP 全部告警、查情报、查资产，然后给结论 + 完整 trace。
+不接模型也能跑——规则替身保证演示不依赖网络。
 
 ### 启用 AI 研判
 
@@ -165,35 +218,17 @@ AI 挂了、超时了、欠费了，报告照样出。
 
 ---
 
-## 目录结构
-
-```
-sec_log_analyzer/
-  models.py      数据结构（LogEntry / Finding / AnalysisResult）
-  config.py      可调参数，密钥从环境变量读
-  parser.py      nginx combined/common + syslog 解析，编码降级
-  rules.py       28 条特征规则 + 归一化
-  detector.py    内容检测 + 行为检测
-  ai_analyst.py  大模型研判（去重/并发/重试/降级）
-  reporter.py    Markdown / HTML / CSV
-  pipeline.py    编排
-  cli.py         命令行入口
-
-tools/compare_old_new.py   新旧版本检测效果对比（复现 README 里的数字）
-app.py                     Streamlit 界面
-```
-
 ---
 
 ## 已知限制（这一节是故意写全的）
 
-- **日志量**：目前是全量读进内存，`max_lines` 默认 20 万行。上 GB 级日志需要改成流式处理
-- **检测率**：12 条自建样本上的 100% **不具统计意义**，样本天然偏向已实现的规则
-- **数据集**：仓库里的 `access.log` / `auth.log` 是**按攻击特征构造的模拟日志**，
-  不是真实服务器流量。构造原因是公开的脱敏日志集很难拿到，且需要逐条标注才能算指标
-- **部署**：目前只在本地运行，未上云
-- **测试**：还没有单元测试（该补的是误报回归与漏报回归两类）
-- **告警关联**：不做跨日志源关联，只做单文件内的行为聚合
+- **日志量**：全量读进内存，`max_lines` 默认 20 万行。上 GB 级日志需要改流式处理
+- **检测率**：没有标注集，所以谈不上准确率。已有的数字（363 请求 / 67 来源 / 81 条告警）
+  是观测值，不是评测结果
+- **数据集**：`samples/` 是按攻击特征构造并脱敏的样本；真实流量
+  来自自建公网测试机，因含真实 IP 不入库
+- **跨源关联**：只做单文件内的行为聚合，不做 nginx 与 auth 的联合分析
+- **Agent 评估**：20 项测试测的是边界行为，不是准确率。要说得清好坏需要人工标注集
 
 ---
 
@@ -201,4 +236,5 @@ app.py                     Streamlit 界面
 
 - Python 3.10+（用到 `X | None` 语法和 `dataclass(slots=True)`）
 - 已在 3.12 / 3.13 上验证核心引擎可运行
-- 界面层需要 `streamlit`
+- 界面层需要 `flask`（引擎本身不需要）
+- 本地模型需要 `ollama`（不在 pip 体系里）

@@ -2,12 +2,12 @@
 # 只依赖 Python 标准库，不装任何东西就能跑命令行版：
 #   python -m sec_log_analyzer.cli access.log
 #   python -m sec_log_analyzer.cli --tail /var/log/nginx/access.log
+#
+# 也就是说：只做离线分析或实时监控，可以不装这个文件里的任何东西。
 
-# Web 控制台需要 Flask（引擎本身不需要）。建议装在虚拟环境里：
-#   python -m venv .venv
-#   .venv/bin/pip install -r requirements.txt
+# Web 控制台需要 Flask（引擎本身不需要）
 flask>=3.0
 
-# 旧的 Streamlit 界面（app.py），能快速看报告。
-# 主力界面已经是 Flask 控制台，不需要可以不装。
-# streamlit>=1.30
+# Agent 不需要额外依赖：LLM 调用走 urllib，本地模型走 Ollama 的 HTTP 接口。
+# 本地模型请单独安装 Ollama（不在 pip 体系里）：
+#   https://ollama.com/download

