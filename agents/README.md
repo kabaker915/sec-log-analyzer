@@ -264,3 +264,80 @@ return "封禁" in action
 
 这跟内容检测里「规则只能抓已知写法」是同一类问题：
 用字符串匹配做语义判断，永远有想不到的反例。
+
+---
+
+## 本地模型（Ollama）
+
+### 为什么要在本地跑
+
+**把攻击者 IP 和日志发给云端 API，本身就是一次数据外泄。**
+安全场景下这是实质问题，不是洁癖。
+
+附带收益：无速率限制、无费用，可以拿历史日志反复跑、反复调提示词；断网可用。
+
+### 用法
+
+```bash
+# 先自检：看硬件、看 Ollama、实测工具调用能力
+python tools/check_local_llm.py
+
+# 本地模型研判
+python -m agents.app chat --index 0 --local
+python -m agents.app batch --limit 10 --local
+
+# 指定模型和调用方式
+python -m agents.app chat --index 0 --local --model qwen2.5:7b --mode text
+```
+
+三种模式互斥，`--local` 优先于 `--llm`——本地模型的意义就是不出网，
+不该被云端覆盖。模型不可用时自动回退到规则替身，不会中断。
+
+### 两个必须处理的现实问题
+
+**1. 本机服务不能走代理**
+
+机器上开着 `HTTP_PROXY` 时，urllib 会把 `127.0.0.1:11434` 的请求也发给代理，
+表现为 `502 Bad Gateway`，看起来像"服务没起来"，实际请求根本没到本地。
+
+模块级统一用无代理 opener：
+
+```python
+_NO_PROXY = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+```
+
+**2. 小模型的 function calling 不可靠**
+
+Ollama 的 `tools` 参数只是把 schema 塞进提示词，模型是否按格式输出全看本事。
+7B 以下经常：该调工具时直接编一段话、输出半截 JSON、一次调三个但格式全错。
+
+所以有两个实现：
+
+| 模式 | 做法 | 适合 |
+|---|---|---|
+| `tools` | 原生 tools 参数 | 模型够强（14B+） |
+| `text` | 要求输出 ` ```json {"tool":..}``` `，正则解析 | 7B 及以下 |
+
+`--mode auto` 默认走 `text`。理由是：即使模型能力差，
+JSON 写错还能靠正则补救；而原生 tools 格式错了就完全没输出。
+
+### 显存与模型选择
+
+按 q4_K_M 量化的经验值（权重 + KV cache 要全放进显存，否则溢出到内存会慢一个数量级）：
+
+| 显存 | 推荐 | 说明 |
+|---|---|---|
+| 16GB+ | qwen2.5:14b | 约 9GB，质量明显更好 |
+| 12GB | qwen2.5:7b | 留足 KV cache 余量 |
+| **8GB** | **qwen2.5:7b** | 约 4.7GB，最佳选择，30–45 tok/s |
+| 6GB | qwen2.5:3b | 7B 会溢出 |
+| <4GB | qwen2.5:1.5b | 只能做最简单判断 |
+
+### 显卡驱动不正常时
+
+`nvidia-smi` 报 `Failed to initialize NVML: Unknown Error` 说明**显卡在但驱动没起来**。
+常见原因：50 系（Blackwell）配旧驱动（需要 572.xx+ / CUDA 12.8）、更新后未重启、
+笔记本双显卡独显被关。
+
+驱动修好之前 Ollama 只会用 CPU，7B 会慢到不可用。
+这时不要盲目拉大模型，先修驱动。

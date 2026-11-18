@@ -22,6 +22,31 @@ from webapp.state import finding_row
 from .chat import TriageAssistant
 
 
+def _make_llm(args):
+    """按参数选模型。返回 (llm 或 None, 说明)。
+
+    None 表示用规则替身。三种模式互斥，但 --llm 和 --local 同时给时
+    local 优先——本地模型的意义就是不出网，不该被云端覆盖。
+    """
+    if args.local:
+        from .local_llm import make_local_llm
+        try:
+            llm, note = make_local_llm(args.model, prefer=args.mode)
+            return llm, note
+        except RuntimeError as exc:
+            print(f"[本地模型不可用] {exc}\n")
+            print("回退到规则替身。先跑 python tools/check_local_llm.py 排查。\n")
+            return None, "规则替身（本地模型不可用）"
+    if args.llm:
+        from .llm import DeepSeekLLM
+        try:
+            return DeepSeekLLM(), "DeepSeek 云端"
+        except RuntimeError as exc:
+            print(f"[云端模型不可用] {exc}\n回退到规则替身。\n")
+            return None, "规则替身（云端模型不可用）"
+    return None, "规则替身"
+
+
 def _load(path: str):
     p = Path(path)
     if not p.exists():
@@ -48,9 +73,11 @@ def cmd_chat(args) -> int:
         print("没有告警可研判")
         return 0
 
+    llm, note = _make_llm(args)
     alert = findings[args.index]
     a = TriageAssistant(alert, findings, entries,
-                        use_llm=args.llm, verbose=True)
+                        use_llm=llm is not None, llm=llm, verbose=True)
+    print(f"模型：{note}\n")
 
     print("=" * 66)
     print(f"告警：{alert['category']} / {alert['severity']} / {alert['ip']}")
@@ -62,8 +89,9 @@ def cmd_chat(args) -> int:
     print(f"依据：{v.get('reason')}")
     print(f"处置：{v.get('action')}")
 
-    if not args.llm:
-        print("\n[提示] 当前使用规则替身，不是真实模型。加 --llm 走 DeepSeek。")
+    if llm is None:
+        print("\n[提示] 当前是规则替身，不是真实模型。"
+              "加 --llm 走云端，或 --local 走本地。")
 
     print("\n可以追问：为什么 / 处置步骤 / 误判风险 / 加白名单会怎样。q 退出\n")
     while True:
@@ -122,12 +150,14 @@ def cmd_batch(args) -> int:
     targets.sort(key=lambda t: (-t[2], -order.get(t[1].get("severity", "low"), 0)))
     targets = targets[:args.limit]
 
+    llm, note = _make_llm(args)
     print(f"{len(findings)} 条告警来自 {len(groups)} 个 IP，"
-          f"按 IP 聚合后研判前 {len(targets)} 个（不加 --llm 时走规则替身）\n")
+          f"按 IP 聚合后研判前 {len(targets)} 个\n模型：{note}\n")
 
     rows = []
     for i, (ip, alert, n_alerts) in enumerate(targets):
-        a = TriageAssistant(alert, findings, entries, use_llm=args.llm)
+        a = TriageAssistant(alert, findings, entries,
+                            use_llm=llm is not None, llm=llm)
         r = a.triage()
         v = r.verdict or {}
         rows.append({
@@ -171,7 +201,11 @@ def main(argv: list[str] | None = None) -> int:
 
     common = argparse.ArgumentParser(add_help=False)
     common.add_argument("--log", default="archive/access-2026-11-13.log")
-    common.add_argument("--llm", action="store_true", help="使用真实模型")
+    common.add_argument("--llm", action="store_true", help="使用云端模型（DeepSeek）")
+    common.add_argument("--local", action="store_true", help="使用本地模型（Ollama）")
+    common.add_argument("--model", default="qwen2.5:7b", help="本地模型名")
+    common.add_argument("--mode", default="auto", choices=["auto", "tools", "text"],
+                        help="本地模型的工具调用方式")
 
     p_chat = sub.add_parser("chat", parents=[common], help="交互式研判与追问")
     p_chat.add_argument("--index", type=int, default=0, help="选第几条告警")
