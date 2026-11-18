@@ -176,3 +176,47 @@ python tests/test_agent.py
 2. 告警聚类：同一 IP 的多条告警先合并，再研判一次
 3. 接真实情报库和 CMDB
 4. 把研判结论接进 Web 控制台（点告警 → 看 agent 的推理过程）
+
+---
+
+## 交互与批量
+
+```bash
+# 单条研判 + 追问
+python -m agents.app chat --index 0
+
+# 批量研判（按 IP 聚合）
+python -m agents.app batch --limit 10
+
+# 接真实模型
+export DEEPSEEK_API_KEY=sk-xxx
+python -m agents.app chat --index 0 --llm
+```
+
+追问支持：`为什么` / `处置步骤` / `误判风险` / `加白名单会怎样`。
+
+### 批量为什么按 IP 聚合
+
+实测 81 条告警来自 21 个 IP，其中一个 IP 单独贡献了 56 条。
+
+逐条研判等于拿同一个 IP 问模型 56 遍，结论几乎一样，纯浪费 token。
+而且分析师关心的是「这个 IP 有没有威胁」，不是「第 37 条告警对不对」。
+
+所以批量模式先按 IP 聚合，取该 IP 最严重的那条告警作代表，只研判一次。
+
+### 一个字符串分类的坑
+
+最初用 `"封禁" in action` 判断是否要封禁，结果「暂不封禁」也被算成要封——
+**否定词和肯定词在字符串里长得一样**。
+
+修法是先排除否定表述再判肯定，顺序不能反：
+
+```python
+negations = ("暂不封禁", "不封禁", "不建议封禁", "无需封禁", "避免封禁")
+if any(n in action for n in negations):
+    return False
+return "封禁" in action
+```
+
+这跟内容检测里「规则只能抓已知写法」是同一类问题：
+用字符串匹配做语义判断，永远有想不到的反例。
