@@ -229,9 +229,9 @@ def security_headers(csp_nonce: str) -> dict[str, str]:
             "default-src 'self'; "
             f"script-src 'self' 'nonce-{csp_nonce}'; "
             "style-src 'self'; "
-            "img-src 'self' data: https://*.basemaps.cartocdn.com; "
-            # 地图瓦片是图片，不是代码。放行这一个域名是有意的：
-            # 换成自建瓦片服务要几百 GB 存储，对演示项目不划算。
+            "img-src 'self' data: https://*.is.autonavi.com; "
+            # 地图瓦片是图片，不是代码。放行的这一个域名是有意的：
+            # CartoDB 和 OSM 在国内实测 8 秒超时，只有高德能用。
             # 注意只放图片域，script-src 仍然是 'self' + nonce，没有放宽。
             "connect-src 'self'; "
             "object-src 'none'; "

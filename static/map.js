@@ -1,51 +1,54 @@
-/* 攻击者地图 + 时间轴。
+/* 攻击者地图：时间轴回放 + 流式显示。
  *
- * 流畅度的三个前提（不是"加点 CSS 过渡"就能解决的）：
+ * 底图换成了高德。
+ * 原因：CartoDB 和 OSM 在国内基本连不上（实测 8 秒超时），
+ * 表现就是"地图一片黑，只有点"——所以之前看起来像坏了。
+ * 高德 webrd 瓦片 0.3 秒响应，配一层 CSS 反色滤镜做成深色。
  *
- * 1. **标记只创建一次**
- *    早期版本每次切换时间都 clearLayers 再重建 679 个 marker，
- *    拖动滑块时明显卡顿。现在一次建好，之后只改半径和透明度。
+ * 注意坐标系：高德是 GCJ-02，我们的点是 WGS-84，
+ * 理论上差几百米。这张图看的是国家/城市级分布（zoom 2–9），
+ * 几百米在这个尺度上不到一个像素，可以忽略。
+ * 如果以后要做到街道级，必须做坐标纠偏。
  *
- * 2. **用 canvas 渲染**
- *    679 个 SVG 元素每次改样式都要重排。Leaflet 的 canvas 渲染器
- *    把所有点画在一张画布上，改样式只是重绘一次。
- *
- * 3. **补间由 rAF 驱动，不用 CSS transition**
- *    canvas 上没有 DOM 元素，CSS 过渡对它无效。
- *    必须自己插值：记录起止值，每帧算中间值。
+ * 流畅度的三个前提：
+ *   1. 标记只创建一次（不 clearLayers 重建）
+ *   2. canvas 渲染（679 个 SVG 改样式要重排）
+ *   3. rAF 手写补间（canvas 没有 DOM 节点，CSS transition 无效）
  */
 (function () {
   "use strict";
 
   var COLORS = {
-    bait: "#ff3b30",
+    bait: "#ff453a",
     exploit: "#ff9f0a",
     cloud: "#ffd60a",
-    scan: "#4a9eff"
+    scan: "#5ab0ff"
   };
 
-  var TWEEN_MS = 260;
+  var TWEEN_MS = 240;
+  var FLASH_MS = 700;
 
   var map = L.map("map", {
     worldCopyJump: true,
     minZoom: 2,
     maxZoom: 9,
     zoomControl: false,
-    preferCanvas: true
-  }).setView([22, 40], 2);
+    preferCanvas: true,
+    attributionControl: true
+  }).setView([24, 60], 3);
 
   L.control.zoom({ position: "bottomright" }).addTo(map);
 
   L.tileLayer(
-    "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    "https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
     {
-      subdomains: "abcd",
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap &copy; CARTO'
+      subdomains: ["1", "2", "3", "4"],
+      maxZoom: 18,
+      attribution: "&copy; 高德地图"
     }
   ).addTo(map);
 
-  var canvas = L.canvas({ padding: 0.3 });
+  var canvas = L.canvas({ padding: 0.4 });
   var layer = L.layerGroup().addTo(map);
 
   var points = [];
@@ -55,11 +58,11 @@
   var windowSize = 24;
   var playing = false;
   var playTimer = null;
+  var streamMode = false;      // 流式：窗口 1 小时 + 新点闪烁
 
   // ------------------------------------------------------------ 工具
   function radiusFor(n) {
-    // 对数：174 次的点和 1 次的点线性差 174 倍，小的会看不见
-    return n <= 0 ? 0 : 3 + Math.log2(n + 1) * 1.9;
+    return n <= 0 ? 0 : 3.2 + Math.log2(n + 1) * 2.1;
   }
 
   function escapeHtml(s) {
@@ -73,7 +76,11 @@
     return iso.replace("T", " ") + ":00";
   }
 
-  /** 某个点在当前窗口内的请求数。 */
+  function fmtDay(iso) {
+    if (!iso) return "–";
+    return iso.slice(5, 10);   // MM-DD
+  }
+
   function countInWindow(p, start, size) {
     var end = start + size;
     var sum = 0;
@@ -96,7 +103,7 @@
         renderer: canvas,
         radius: 0,
         color: color,
-        weight: p.cat === "bait" ? 2 : 1,
+        weight: p.cat === "bait" ? 2 : 1.4,
         opacity: 0,
         fillColor: color,
         fillOpacity: 0
@@ -112,110 +119,201 @@
       m.on("click", function () { showDetail(p); });
       m.addTo(layer);
 
-      markers.push({ marker: m, p: p, curR: 0, curO: 0, tgtR: 0, tgtO: 0 });
+      markers.push({
+        marker: m, p: p,
+        curR: 0, curO: 0, tgtR: 0, tgtO: 0,
+        flash: 0          // 1 → 0 衰减，流式模式下让新出现的点"亮一下"
+      });
     });
   }
 
-  // ------------------------------------------------------------ 补间
+  // ------------------------------------------------------------ 动画循环
   var rafId = null;
-  var animFrom = 0;
+  var tweenFrom = 0;
+  var tweening = false;
 
-  function startTween() {
-    if (rafId !== null) return;
-    animFrom = performance.now();
-    rafId = requestAnimationFrame(stepTween);
+  function kick() {
+    if (rafId === null) {
+      tweenFrom = performance.now();
+      rafId = requestAnimationFrame(tick);
+    }
   }
 
-  function stepTween(now) {
-    var t = Math.min(1, (now - animFrom) / TWEEN_MS);
-    // easeOutCubic：起步快收尾稳，比线性"有质感"
-    var e = 1 - Math.pow(1 - t, 3);
+  function tick(now) {
+    var t = Math.min(1, (now - tweenFrom) / TWEEN_MS);
+    var e = 1 - Math.pow(1 - t, 3);      // easeOutCubic
+    var anyFlash = false;
+    var i, it;
 
-    for (var i = 0; i < markers.length; i++) {
-      var it = markers[i];
+    for (i = 0; i < markers.length; i++) {
+      it = markers[i];
+
       var r = it.curR + (it.tgtR - it.curR) * e;
       var o = it.curO + (it.tgtO - it.curO) * e;
+
+      if (it.flash > 0) {
+        // 闪烁：额外撑大一圈再收回，视觉上像"刚打过来"
+        r += it.flash * 9;
+        o = Math.min(1, o + it.flash * 0.5);
+        anyFlash = true;
+      }
+
       it.marker.setRadius(r);
       it.marker.setStyle({
-        opacity: o > 0 ? Math.min(1, o * 1.3) : 0,
+        opacity: o > 0 ? Math.min(1, o * 1.25) : 0,
         fillOpacity: o
       });
     }
 
     if (t < 1) {
-      rafId = requestAnimationFrame(stepTween);
+      rafId = requestAnimationFrame(tick);
+      return;
+    }
+
+    // 补间收尾：对齐目标值，避免累积误差让点慢慢漂
+    for (i = 0; i < markers.length; i++) {
+      it = markers[i];
+      it.curR = it.tgtR;
+      it.curO = it.tgtO;
+      it.marker.setRadius(it.tgtR + it.flash * 9);
+      it.marker.setStyle({
+        opacity: it.tgtO > 0 ? Math.min(1, it.tgtO * 1.25 + it.flash * 0.5) : it.flash * 0.5,
+        fillOpacity: it.tgtO + it.flash * 0.5
+      });
+    }
+
+    if (anyFlash) {
+      // 闪烁还没走完，继续下一帧
+      rafId = requestAnimationFrame(flashTick);
     } else {
-      // 收尾对齐目标值，避免累积误差让点慢慢"漂"
-      for (var j = 0; j < markers.length; j++) {
-        var m2 = markers[j];
-        m2.curR = m2.tgtR;
-        m2.curO = m2.tgtO;
-        m2.marker.setRadius(m2.tgtR);
-        m2.marker.setStyle({
-          opacity: m2.tgtO > 0 ? Math.min(1, m2.tgtO * 1.3) : 0,
-          fillOpacity: m2.tgtO
-        });
-      }
+      rafId = null;
+      tweening = false;
+    }
+  }
+
+  function flashTick() {
+    var alive = false;
+    for (var i = 0; i < markers.length; i++) {
+      var it = markers[i];
+      if (it.flash <= 0) continue;
+      it.flash -= 16 / FLASH_MS;        // 约 60fps 下的衰减步长
+      if (it.flash < 0) it.flash = 0;
+      alive = true;
+
+      it.marker.setRadius(it.tgtR + it.flash * 9);
+      it.marker.setStyle({
+        opacity: it.tgtO > 0 ? Math.min(1, it.tgtO * 1.25 + it.flash * 0.5) : it.flash * 0.5,
+        fillOpacity: Math.min(1, it.tgtO + it.flash * 0.5)
+      });
+    }
+    if (alive) {
+      rafId = requestAnimationFrame(flashTick);
+    } else {
       rafId = null;
     }
   }
 
-  function applyImmediate() {
-    for (var j = 0; j < markers.length; j++) {
-      var m = markers[j];
-      m.curR = m.tgtR;
-      m.curO = m.tgtO;
-      m.marker.setRadius(m.tgtR);
-      m.marker.setStyle({
-        opacity: m.tgtO > 0 ? Math.min(1, m.tgtO * 1.3) : 0,
-        fillOpacity: m.tgtO
-      });
-    }
-  }
-
   // ------------------------------------------------------------ 应用窗口
-  function applyWindow(animate) {
-    var visible = 0;
-    var sum = 0;
+  function applyWindow(animate, flashNew) {
+    var visible = 0, sum = 0;
     var byCat = { bait: 0, exploit: 0, cloud: 0, scan: 0 };
 
     for (var i = 0; i < markers.length; i++) {
       var it = markers[i];
       var n = countInWindow(it.p, windowStart, windowSize);
+      var wasVisible = it.tgtR > 0;
+
       if (n > 0) {
         visible += 1;
         sum += n;
         byCat[it.p.cat] = (byCat[it.p.cat] || 0) + 1;
         it.tgtR = radiusFor(n);
-        it.tgtO = it.p.cat === "bait" ? 0.62 : 0.38;
+        // 提亮了：之前 0.38 在深色底图上几乎看不见，这就是"显示有问题"的一半
+        it.tgtO = it.p.cat === "bait" ? 0.85 : 0.62;
+        if (flashNew && !wasVisible) it.flash = 1;
       } else {
         it.tgtR = 0;
         it.tgtO = 0;
       }
     }
 
-    if (animate) { startTween(); } else { applyImmediate(); }
+    if (animate) {
+      kick();
+    } else {
+      for (var j = 0; j < markers.length; j++) {
+        var m = markers[j];
+        m.curR = m.tgtR;
+        m.curO = m.tgtO;
+        m.marker.setRadius(m.tgtR);
+        m.marker.setStyle({
+          opacity: m.tgtO > 0 ? Math.min(1, m.tgtO * 1.25) : 0,
+          fillOpacity: m.tgtO
+        });
+      }
+    }
 
-    // 面板数字跟着窗口变——拖时间轴时数字在跳，才让人相信图是真的
+    updateLabels(visible, sum, byCat);
+    highlightDate();
+  }
+
+  function updateLabels(visible, sum, byCat) {
     var label = document.getElementById("tl-label");
     if (label && hours.length) {
       var a = hours[windowStart] || "";
       var bIdx = Math.min(hours.length - 1, windowStart + windowSize - 1);
-      label.textContent = fmtHour(a) +
-        (windowSize > 1 ? "  →  " + fmtHour(hours[bIdx] || "") : "");
+      label.textContent = fmtHour(a) + (windowSize > 1 ? "  →  " + fmtHour(hours[bIdx] || "") : "");
     }
-
     var wc = document.getElementById("tl-window-count");
     if (wc) wc.textContent = visible + " 个来源 · " + sum + " 次请求";
 
-    var sb = document.getElementById("s-bait");
-    var se = document.getElementById("s-exploit");
-    var sc = document.getElementById("s-cloud");
-    var ss = document.getElementById("s-scan");
-    if (sb) sb.textContent = byCat.bait;
-    if (se) se.textContent = byCat.exploit;
-    if (sc) sc.textContent = byCat.cloud;
-    if (ss) ss.textContent = byCat.scan;
+    var ids = { "s-bait": "bait", "s-exploit": "exploit", "s-cloud": "cloud", "s-scan": "scan" };
+    for (var id in ids) {
+      if (!ids.hasOwnProperty(id)) continue;
+      var el = document.getElementById(id);
+      if (el) el.textContent = byCat[ids[id]] || 0;
+    }
+  }
+
+  // ------------------------------------------------------------ 日期快捷
+  function buildDateChips() {
+    var box = document.getElementById("tl-dates");
+    if (!box || !hours.length) return;
+
+    // 每天取第一个小时的序号，点一下直接跳过去
+    var firstOfDay = {};
+    hours.forEach(function (h, i) {
+      var d = h.slice(0, 10);
+      if (firstOfDay[d] === undefined) firstOfDay[d] = i;
+    });
+
+    var frag = document.createDocumentFragment();
+    Object.keys(firstOfDay).sort().forEach(function (d) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.textContent = fmtDay(d);
+      b.dataset.day = d;
+      b.addEventListener("click", function () {
+        stopPlay();
+        windowStart = firstOfDay[d];
+        var maxStart = Math.max(0, hours.length - windowSize);
+        if (windowStart > maxStart) windowStart = maxStart;
+        var slider = document.getElementById("tl-slider");
+        if (slider) slider.value = String(windowStart);
+        applyWindow(true, false);
+      });
+      frag.appendChild(b);
+    });
+    box.appendChild(frag);
+  }
+
+  function highlightDate() {
+    var box = document.getElementById("tl-dates");
+    if (!box || !hours.length) return;
+    var cur = (hours[windowStart] || "").slice(0, 10);
+    var btns = box.querySelectorAll("button");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].classList.toggle("on", btns[i].dataset.day === cur);
+    }
   }
 
   // ------------------------------------------------------------ 时间轴
@@ -227,11 +325,10 @@
     slider.value = String(windowStart);
     slider.addEventListener("input", function () {
       windowStart = parseInt(slider.value, 10) || 0;
-      applyWindow(true);
+      applyWindow(true, streamMode);
     });
 
-    // 频率直方图：每小时的请求总量。
-    // 没有它，滑块拖到哪都是盲猜；有了它，能直接看到"11-17 晚上有一波"。
+    // 直方图：每小时请求总量。没有它，滑块拖到哪都是盲猜
     var hist = document.getElementById("tl-hist");
     var totals = new Array(hours.length);
     var i;
@@ -258,12 +355,34 @@
     if (winSel) {
       winSel.addEventListener("change", function () {
         windowSize = parseInt(winSel.value, 10) || 24;
+        streamMode = false;
         var maxStart = Math.max(0, hours.length - windowSize);
         if (windowStart > maxStart) {
           windowStart = maxStart;
           slider.value = String(maxStart);
         }
-        applyWindow(true);
+        applyWindow(true, false);
+      });
+    }
+
+    var modeSel = document.getElementById("tl-mode");
+    if (modeSel) {
+      modeSel.addEventListener("change", function () {
+        streamMode = modeSel.value === "stream";
+        if (streamMode) {
+          windowSize = 1;
+          if (winSel) winSel.value = "6";
+          winSel.disabled = true;
+        } else {
+          windowSize = parseInt(winSel.value, 10) || 24;
+          winSel.disabled = false;
+        }
+        var maxStart = Math.max(0, hours.length - windowSize);
+        if (windowStart > maxStart) {
+          windowStart = maxStart;
+          slider.value = String(maxStart);
+        }
+        applyWindow(true, streamMode);
       });
     }
 
@@ -282,13 +401,16 @@
     if (playBtn) { playBtn.textContent = "暂停"; playBtn.classList.add("on"); }
 
     var slider = document.getElementById("tl-slider");
+    // 流式模式推进快一点，一小时的量 0.55 秒走完，看起来像事件在涌入
+    var step = streamMode ? 520 : 700;
+
     playTimer = setInterval(function () {
       var maxStart = Math.max(0, hours.length - windowSize);
       if (windowStart >= maxStart) { stopPlay(); return; }
       windowStart = Math.min(maxStart, windowStart + 1);
       if (slider) slider.value = String(windowStart);
-      applyWindow(true);
-    }, 420);
+      applyWindow(true, streamMode);
+    }, step);
   }
 
   function stopPlay() {
@@ -327,13 +449,12 @@
     points = data.points || [];
     hours = data.hours || [];
     windowSize = Math.min(24, Math.max(1, hours.length));
-
-    // 默认停在最后 24 小时：那是"现在"，也是最有意义的视角
     windowStart = Math.max(0, hours.length - windowSize);
 
     buildMarkers();
     buildTimeline();
-    applyWindow(false);   // 首屏不做动画，避免一打开就"从无到有"闪一下
+    buildDateChips();
+    applyWindow(false, false);
 
     var s = data.stats || {};
     document.getElementById("s-ips").textContent = s.ips || 0;
@@ -359,7 +480,6 @@
     document.getElementById("detail").hidden = true;
   });
 
-  // 生产环境走接口；离线快照把数据直接塞进 window.__MAP_DATA__
   var ready = window.__MAP_DATA__
     ? Promise.resolve(window.__MAP_DATA__)
     : fetch("/api/map/points", { credentials: "same-origin" })

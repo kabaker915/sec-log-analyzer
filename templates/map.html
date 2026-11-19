@@ -53,21 +53,28 @@
   </aside>
 
   <div id="timeline">
-    <button id="tl-play" type="button">播放</button>
-    <div class="tl-main">
-      <div id="tl-hist" aria-hidden="true"></div>
-      <input id="tl-slider" type="range" min="0" max="1" value="0" step="1" aria-label="时间">
+    <div class="tl-row">
+      <button id="tl-play" type="button">播放</button>
+      <div class="tl-main">
+        <div id="tl-hist" aria-hidden="true"></div>
+        <input id="tl-slider" type="range" min="0" max="1" value="0" step="1" aria-label="时间">
+      </div>
+      <select id="tl-mode" aria-label="显示模式">
+        <option value="window" selected>窗口</option>
+        <option value="stream">流式</option>
+      </select>
+      <select id="tl-win" aria-label="时间窗口">
+        <option value="6">6 小时</option>
+        <option value="24" selected>24 小时</option>
+        <option value="72">3 天</option>
+        <option value="168">7 天</option>
+      </select>
     </div>
-    <div class="tl-meta">
+    <div class="tl-row tl-sub">
       <span id="tl-label">–</span>
       <span id="tl-window-count" class="muted">–</span>
+      <div id="tl-dates" class="tl-dates"></div>
     </div>
-    <select id="tl-win" aria-label="时间窗口">
-      <option value="6">6 小时</option>
-      <option value="24" selected>24 小时</option>
-      <option value="72">3 天</option>
-      <option value="168">7 天</option>
-    </select>
   </div>
 
   <aside id="detail" hidden>

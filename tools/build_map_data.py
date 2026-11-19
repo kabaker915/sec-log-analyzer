@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import argparse
+import glob as globmod
 import gzip
 import json
 import sys
@@ -49,7 +50,12 @@ def iter_files(patterns: list[str]) -> list[Path]:
         if p.is_dir():
             files.extend(sorted(p.glob("*.log*")))
         elif any(c in pat for c in "*?["):
-            files.extend(sorted(Path().glob(pat)))
+            # 用 glob.glob 而不是 Path().glob()：
+            # 后者在 Python 3.10 上不接受绝对路径，会抛
+            # NotImplementedError("Non-relative patterns are unsupported")。
+            # 我本地用相对路径测的，一直没暴露，直到在服务器上
+            # 传了 /var/log/nginx/access.log* 才炸。
+            files.extend(Path(x) for x in sorted(globmod.glob(pat)))
         elif p.exists():
             files.append(p)
     return files

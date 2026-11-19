@@ -29,6 +29,14 @@
   background: #0b0f14;
 }
 
+/* 高德瓦片是浅色的，直接铺在深色面板里很刺眼。
+   invert + hue-rotate 是给浅色地图做深色主题的标准做法：
+   反色之后陆地变深、水系变亮，再转 180 度色相把蓝色调回来。
+   比换一套深色瓦片省事，也不依赖需要 key 的服务。 */
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(1.08) saturate(.45);
+}
+
 /* Leaflet 默认控件在深色背景上很刺眼，统一改暗 */
 .leaflet-control-attribution {
   background: rgba(11, 15, 20, .78) !important;
@@ -275,14 +283,14 @@
 #timeline {
   position: absolute;
   left: 50%;
-  bottom: 18px;
+  bottom: 16px;
   transform: translateX(-50%);
   z-index: 900;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  width: min(760px, calc(100% - 340px));
-  padding: 10px 14px;
+  flex-direction: column;
+  gap: 8px;
+  width: min(820px, calc(100% - 340px));
+  padding: 10px 14px 9px;
   border-radius: 10px;
   background: rgba(13, 18, 25, .94);
   border: 1px solid #202a38;
@@ -385,20 +393,52 @@
   border: 2px solid #0b0f14;
 }
 
-.tl-meta {
-  flex: none;
+.tl-row {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 168px;
+  align-items: center;
+  gap: 10px;
+}
+
+.tl-sub {
   font-size: 11px;
   color: #a8b2c0;
   font-variant-numeric: tabular-nums;
 }
 
-.tl-meta .muted { color: #6b7684; }
+.tl-sub .muted { color: #6b7684; }
 
-#tl-win {
+/* 日期快捷：一行小按钮，点一下跳到那天。
+   比在滑块上盲拖准得多——184 个刻度里找一个下午很难。 */
+.tl-dates {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+  overflow-x: auto;
+  padding-bottom: 1px;
+}
+
+.tl-dates button {
+  flex: none;
+  padding: 3px 7px;
+  border: 1px solid #232e3c;
+  border-radius: 5px;
+  background: #131a23;
+  color: #7d8794;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background .12s, color .12s, border-color .12s;
+}
+
+.tl-dates button:hover { background: #1b2430; color: #b6c0cd; }
+
+.tl-dates button.on {
+  background: #163049;
+  border-color: #2f6390;
+  color: #7fc0ff;
+}
+
+#tl-mode, #tl-win {
   flex: none;
   padding: 6px 8px;
   border: 1px solid #2b3644;
@@ -411,9 +451,7 @@
 
 /* 窄屏时时间轴收起来，不给小屏幕添乱 */
 @media (max-width: 980px) {
-  #timeline {
-    width: calc(100% - 32px);
-    flex-wrap: wrap;
-  }
-  .tl-meta { min-width: 0; flex: 1 1 100%; flex-direction: row; gap: 10px; }
+  #timeline { width: calc(100% - 24px); }
+  .tl-sub { flex-wrap: wrap; }
+  .tl-dates { margin-left: 0; width: 100%; }
 }
