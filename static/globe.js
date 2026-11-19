@@ -17,6 +17,7 @@
   "use strict";
 
   var ASSET = window.__ASSET_BASE__ || "/static/vendor/globe";
+  var GEO = window.__GEO_BASE__ || "/static/vendor/geo";
 
   var COLORS = {
     bait: "#ff453a",
@@ -40,6 +41,53 @@
     .atmosphereColor("#3a86ff")
     .atmosphereAltitude(0.18)
     .showGraticules(false);
+
+  // 清晰度：默认 renderer 用 devicePixelRatio，但在高分屏上会被浏览器
+  // 限制到 1；手动设到 2，贴图 4096×2048 的细节才真正显现出来。
+  // 上限压 2 是因为 3x 屏上 4 倍像素量对 GPU 太重，收益却看不出来。
+  (function sharpen() {
+    var r = globe.renderer();
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // bumpScale 默认 10，山脉起伏很平；调到 25 才有"球体"的立体感
+    var m = globe.globeMaterial();
+    if (m) {
+      m.bumpScale = 25;
+      m.shininess = 6;
+    }
+  })();
+
+  // 中国省级边界。
+  //
+  // 数据来源：阿里云 DataV 的国标行政区划（geo.datav.aliyun.com），
+  // 35 个要素 = 34 个省级行政区 + adcode 100000_JD（南海诸岛/九段线）。
+  // 明确包含"台湾省"，符合国家标准的表述。
+  //
+  // 为什么不画其它国家的国界：世界国界涉及政治边界，
+  // 用境外数据集（Natural Earth 之类）很容易在阿克赛钦、藏南、
+  // 南海等问题上画错。宁可只画中国省级边界 + 全球海岸线，
+  // 也不画一张边界有争议的世界地图。
+  var provincesLayer = function (features) {
+    globe
+      .polygonsData(features)
+      .polygonAltitude(0.005)
+      .polygonCapColor(function () { return "rgba(90,176,255,0.025)"; })
+      .polygonSideColor(function () { return "rgba(0,0,0,0)"; })
+      .polygonStrokeColor(function () { return "rgba(122,203,255,0.55)"; })
+      .polygonsTransitionDuration(0);
+  };
+
+  // 离线快照会把省界数据直接内联到 __PROVINCES__，
+  // 因为快照是从本地文件打开的，相对路径取不到 static/ 下的数据。
+  if (window.__PROVINCES__ && window.__PROVINCES__.features) {
+    provincesLayer(window.__PROVINCES__.features);
+  } else {
+    fetch(GEO + "/china-provinces.json")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (gj) {
+        if (gj && gj.features) provincesLayer(gj.features);
+      })
+      .catch(function () { /* 边界加载失败不影响主图 */ });
+  }
 
   // 点：柱状，高度代表请求数
   globe

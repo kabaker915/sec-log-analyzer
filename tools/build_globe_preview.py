@@ -88,6 +88,7 @@ TEMPLATE = """<!doctype html>
 <script>window.__ASSET_BASE__ = "{cdn}";</script>
 <script src="https://unpkg.com/globe.gl@2.32.3/dist/globe.gl.min.js"></script>
 <script>window.__MAP_DATA__ = {data};</script>
+<script>window.__PROVINCES__ = {provinces};</script>
 <script>{globe_js}</script>
 </body>
 </html>
@@ -107,11 +108,16 @@ def main() -> int:
         return 1
 
     payload = json.loads(data_path.read_text(encoding="utf-8"))
+
+    # 省界数据内联进快照：快照是本地打开的，取不到 /static 下的文件
+    geo_path = ROOT / "static" / "vendor" / "geo" / "china-provinces.json"
+    provinces = json.loads(geo_path.read_text(encoding="utf-8")) if geo_path.exists() else {"features": []}
     html = TEMPLATE.format(
         app_css=read(ROOT / "static/app.css"),
         globe_css=read(ROOT / "static/globe.css"),
         globe_js=read(ROOT / "static/globe.js"),
         data=json.dumps(payload, ensure_ascii=False),
+        provinces=json.dumps(provinces, ensure_ascii=False),
         generated=payload.get("generated_at", ""),
         cdn=CDN,
     )
