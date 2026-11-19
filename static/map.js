@@ -87,7 +87,7 @@
   var map = L.map("map", {
     worldCopyJump: true,
     minZoom: 2,
-    maxZoom: 9,
+    maxZoom: 6,   // IP 只能定位到城市，再放大就是看城市中心点，没有意义
     zoomControl: false,
     preferCanvas: true,
     attributionControl: true
@@ -141,7 +141,7 @@
       c.style.left = "0";
       c.style.top = "0";
       m.getPane("attackPane").appendChild(c);
-      m.on("move zoom resize viewreset", this._reset, this);
+      m.on("move zoom resize viewreset moveend zoomend", this._reset, this);
       this._reset();
       this._loop();
     },
@@ -155,6 +155,18 @@
     _reset: function () {
       var size = this._map.getSize();
       var dpr = window.devicePixelRatio || 1;
+
+      // **关键**：画布必须跟着地图坐标系走。
+      //
+      // 我用的是 latLngToContainerPoint（视口坐标，原点在屏幕左上角），
+      // 而画布是放在 pane 里的。pane 会被 Leaflet 整体平移，
+      // 如果不把画布挪到"容器原点对应的图层位置"，一平移/缩放
+      // 线条就会整体错位——这就是"缩放后位置不对"的直接原因。
+      //
+      // setPosition 把画布置于 containerPoint(0,0) 对应的 layerPoint，
+      // 这样在画布里用容器坐标画，落点就和地图对齐。
+      L.DomUtil.setPosition(this._canvas, this._map.containerPointToLayerPoint([0, 0]));
+
       this._canvas.width = Math.round(size.x * dpr);
       this._canvas.height = Math.round(size.y * dpr);
       this._canvas.style.width = size.x + "px";
@@ -309,6 +321,7 @@
 
   var points = [];
   var hours = [];
+  var clusters = [];   // 同坐标合并后的点
   var markers = [];
   var windowStart = 0;
   var windowSize = 24;
@@ -318,7 +331,8 @@
 
   // ------------------------------------------------------------ 工具
   function radiusFor(n) {
-    return n <= 0 ? 0 : 3.2 + Math.log2(n + 1) * 2.1;
+    // 封顶 15px：某个城市可能有几十个来源，不设上限会糊住半个国家
+    return n <= 0 ? 0 : Math.min(15, 3.4 + Math.log2(n + 1) * 2.0);
   }
 
   function escapeHtml(s) {
@@ -348,17 +362,58 @@
     return sum;
   }
 
+  /**
+   * 把同一坐标的点合并。
+   *
+   * 为什么必须做：地理库给的是**城市中心点**，不是精确地址。
+   * 实测 679 个 IP 只有 156 个不同坐标，最多 46 个 IP 落在同一个点上。
+   * 不合并的话，放大后几十个圆完全重叠，看起来像"位置全错了"——
+   * 那不是渲染 bug，是数据只有城市级分辨率。
+   *
+   * 合并后每个城市一个点，标注"N 个来源"，
+   * 点大小仍按请求数算，两种信息都不丢。
+   */
+  function buildClusters(pts) {
+    var buckets = {};
+    var order = [];
+
+    pts.forEach(function (p) {
+      var g = toGcj02(p.lat, p.lon);
+      var key = g[0].toFixed(3) + "," + g[1].toFixed(3);
+      var c = buckets[key];
+      if (!c) {
+        c = buckets[key] = {
+          glat: g[0], glon: g[1], n: 0, h: {},
+          members: [], cat: "scan",
+          country: p.country, city: p.city, ua: p.ua,
+          paths: [], first: p.first, last: p.last
+        };
+        order.push(c);
+      }
+      c.n += p.n;
+      c.members.push(p);
+      for (var k in p.h) {
+        if (p.h.hasOwnProperty(k)) c.h[k] = (c.h[k] || 0) + p.h[k];
+      }
+      // 类别取组内最严重的：诱饵 > 利用 > 云凭据 > 扫描
+      if (p.cat === "bait") c.cat = "bait";
+      else if (p.cat === "exploit" && c.cat !== "bait") c.cat = "exploit";
+      else if (p.cat === "cloud" && c.cat === "scan") c.cat = "cloud";
+      (p.paths || []).forEach(function (x) {
+        if (c.paths.indexOf(x) < 0 && c.paths.length < 6) c.paths.push(x);
+      });
+    });
+
+    return order;
+  }
+
   // ------------------------------------------------------------ 建点（只做一次）
   function buildMarkers() {
     layer.clearLayers();
     markers = [];
 
-    points.forEach(function (p) {
+    clusters.forEach(function (p) {
       var color = COLORS[p.cat] || COLORS.scan;
-      // 纠偏后再投影，否则放大后点会整体偏几百米
-      var g = toGcj02(p.lat, p.lon);
-      p.glat = g[0];
-      p.glon = g[1];
       var m = L.circleMarker([p.glat, p.glon], {
         renderer: canvas,
         radius: 0,
@@ -371,9 +426,11 @@
 
       m.bindTooltip(function () {
         var n = countInWindow(p, windowStart, windowSize);
-        return "<b>" + escapeHtml(p.ip) + "</b><br>" +
-               escapeHtml((p.country || "?") + (p.city ? " · " + p.city : "")) +
-               "<br>窗口内 " + n + " 次 / 共 " + p.n + " 次";
+        var head = p.members.length === 1
+          ? "<b>" + escapeHtml(p.members[0].ip) + "</b>"
+          : "<b>" + escapeHtml(p.country || "?") + (p.city ? " · " + escapeHtml(p.city) : "") +
+            "</b><br>" + p.members.length + " 个来源";
+        return head + "<br>窗口内 " + n + " 次 / 共 " + p.n + " 次";
       }, { className: "ip-tip", direction: "top", offset: [0, -2] });
 
       m.on("click", function () { showDetail(p); });
@@ -729,27 +786,55 @@
   }
 
   // ------------------------------------------------------------ 详情
-  function showDetail(p) {
-    document.getElementById("d-ip").textContent = p.ip;
-    document.getElementById("d-loc").textContent =
-      [p.country, p.city].filter(Boolean).join(" · ") || "未知位置";
+  function showDetail(c) {
+    var members = c.members || [];
+    var single = members.length === 1;
+
+    document.getElementById("d-ip").textContent =
+      single ? members[0].ip : (members.length + " 个来源");
+
+    var loc = [c.country, c.city].filter(Boolean).join(" · ") || "未知位置";
+    // 说明精度来源：用户放大后发现点不在具体街道，要能理解为什么
+    document.getElementById("d-loc").textContent = loc + "（城市级定位）";
+
     document.getElementById("d-n").textContent =
-      countInWindow(p, windowStart, windowSize) + " 次（窗口内）/ 共 " + p.n + " 次";
-    document.getElementById("d-first").textContent =
-      (p.first || "").replace("T", " ").slice(0, 16);
-    document.getElementById("d-last").textContent =
-      (p.last || "").replace("T", " ").slice(0, 16);
-    document.getElementById("d-ua").textContent = p.ua || "-";
+      countInWindow(c, windowStart, windowSize) + " 次（窗口内）/ 共 " + c.n + " 次";
+
+    var first = c.first || "", last = c.last || "";
+    members.forEach(function (m) {
+      if (m.first && (!first || m.first < first)) first = m.first;
+      if (m.last && (!last || m.last > last)) last = m.last;
+    });
+    document.getElementById("d-first").textContent = first.replace("T", " ").slice(0, 16);
+    document.getElementById("d-last").textContent = last.replace("T", " ").slice(0, 16);
+    document.getElementById("d-ua").textContent = single ? (members[0].ua || "-") : "多个来源";
 
     var ul = document.getElementById("d-paths");
     ul.textContent = "";
-    (p.paths || []).forEach(function (path) {
+    document.getElementById("detail").hidden = false;
+
+    if (!single) {
+      // 同一城市有多个 IP 时，先按请求数列出前 6 个，
+      // 这比给一个"城市名"有用得多——分析时要看的是具体 IP
+      var top = members.slice().sort(function (a, b) { return b.n - a.n; }).slice(0, 6);
+      top.forEach(function (m) {
+        var li = document.createElement("li");
+        li.textContent = m.ip + "  ·  " + m.n + " 次";
+        ul.appendChild(li);
+      });
+      if (members.length > 6) {
+        var more = document.createElement("li");
+        more.textContent = "…… 还有 " + (members.length - 6) + " 个来源";
+        ul.appendChild(more);
+      }
+      return;
+    }
+
+    (members[0].paths || []).forEach(function (path) {
       var li = document.createElement("li");
       li.textContent = path;   // 路径是攻击者写的，只能 textContent
       ul.appendChild(li);
     });
-
-    document.getElementById("detail").hidden = false;
   }
 
   // ------------------------------------------------------------ 启动
@@ -759,6 +844,7 @@
     windowSize = Math.min(24, Math.max(1, hours.length));
     windowStart = Math.max(0, hours.length - windowSize);
 
+    clusters = buildClusters(points);
     buildMarkers();
     attackLayer.addTo(map);
     buildTimeline();
