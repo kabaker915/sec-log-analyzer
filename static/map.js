@@ -51,6 +51,179 @@
   var canvas = L.canvas({ padding: 0.4 });
   var layer = L.layerGroup().addTo(map);
 
+  // 被攻击的目标：服务器所在位置（广州）
+  var TARGET = { lat: 23.1291, lon: 113.264 };
+
+  map.createPane("attackPane");
+  map.getPane("attackPane").style.zIndex = 450;
+  map.getPane("attackPane").style.pointerEvents = "none";
+
+  /**
+   * 攻击连线层。
+   *
+   * 为什么自己画 canvas，不用 L.polyline：
+   *   100 多条曲线 + 每条一个流动光点，用 polyline 就是 100+ 个 Leaflet 图层，
+   *   每帧改属性会触发大量重排。自己在一个 canvas 上画，一帧就是一次 clearRect
+   *   加 N 条贝塞尔曲线，稳定 60fps。
+   *
+   * 曲线而不是直线：直线会在地图上形成一团从中心散开的"刺"，
+   * 视觉上分不清哪条对哪条。二次贝塞尔带一点弧度，线之间不会重叠。
+   */
+  var AttackLayer = L.Layer.extend({
+    initialize: function () {
+      this._attacks = [];
+      this._t0 = performance.now();
+      this._raf = null;
+    },
+
+    onAdd: function (m) {
+      this._map = m;
+      var c = this._canvas = L.DomUtil.create("canvas", "attack-canvas");
+      c.style.position = "absolute";
+      c.style.left = "0";
+      c.style.top = "0";
+      m.getPane("attackPane").appendChild(c);
+      m.on("move zoom resize viewreset", this._reset, this);
+      this._reset();
+      this._loop();
+    },
+
+    onRemove: function (m) {
+      if (this._raf) cancelAnimationFrame(this._raf);
+      m.off("move zoom resize viewreset", this._reset, this);
+      L.DomUtil.remove(this._canvas);
+    },
+
+    _reset: function () {
+      var size = this._map.getSize();
+      var dpr = window.devicePixelRatio || 1;
+      this._canvas.width = Math.round(size.x * dpr);
+      this._canvas.height = Math.round(size.y * dpr);
+      this._canvas.style.width = size.x + "px";
+      this._canvas.style.height = size.y + "px";
+      this._ctx = this._canvas.getContext("2d");
+      this._ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      this._w = size.x;
+      this._h = size.y;
+    },
+
+    setAttacks: function (list) {
+      this._attacks = list;
+    },
+
+    setVisible: function (on) {
+      this._visible = on;
+      if (!on && this._ctx) this._ctx.clearRect(0, 0, this._w, this._h);
+    },
+
+    _loop: function () {
+      var self = this;
+      function frame(ts) {
+        self._draw(ts);
+        self._raf = requestAnimationFrame(frame);
+      }
+      this._raf = requestAnimationFrame(frame);
+    },
+
+    _draw: function (ts) {
+      var ctx = this._ctx;
+      if (!ctx) return;
+      ctx.clearRect(0, 0, this._w, this._h);
+      if (this._visible === false) return;
+
+      var mp = this._map;
+      var T = mp.latLngToContainerPoint([TARGET.lat, TARGET.lon]);
+      var self = this;
+
+      // 目标位置的脉冲环：三圈错开相位，看起来像"心跳"
+      var beat = ((ts - this._t0) % 2600) / 2600;
+      for (var r = 0; r < 3; r++) {
+        var ph = (beat + r / 3) % 1;
+        var rad = 6 + ph * 34;
+        ctx.beginPath();
+        ctx.arc(T.x, T.y, rad, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,69,58," + (0.34 * (1 - ph)) + ")";
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+      }
+      ctx.beginPath();
+      ctx.arc(T.x, T.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff453a";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(T.x, T.y, 9, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255,69,58,.55)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      var n = this._attacks.length;
+      for (var i = 0; i < n; i++) {
+        var a = this._attacks[i];
+        var P = mp.latLngToContainerPoint([a.lat, a.lon]);
+
+        // 控制点：中点朝垂直方向偏移，偏移量随距离增大，
+        // 让长线和短线都有弧度但都不夸张
+        var mx = (P.x + T.x) / 2;
+        var my = (P.y + T.y) / 2;
+        var dx = T.x - P.x;
+        var dy = T.y - P.y;
+        var len = Math.sqrt(dx * dx + dy * dy) || 1;
+        var bend = Math.min(90, len * 0.22);
+        var cx = mx - (dy / len) * bend;
+        var cy = my + (dx / len) * bend;
+
+        var color = COLORS[a.cat] || COLORS.scan;
+
+        // 底弧
+        ctx.beginPath();
+        ctx.moveTo(P.x, P.y);
+        ctx.quadraticCurveTo(cx, cy, T.x, T.y);
+        ctx.strokeStyle = this._rgb(color, a.cat === "bait" ? 0.42 : 0.16);
+        ctx.lineWidth = a.cat === "bait" ? 1.6 : 1;
+        ctx.stroke();
+
+        // 流动光点：相位按序号错开，看起来是持续有东西打过来，不是齐步走
+        var period = 2400;
+        var phase = ((ts - this._t0) / period + i * 0.17) % 1;
+
+        for (var k = 0; k < 2; k++) {
+          var t = (phase + k * 0.5) % 1;
+          var it = 1 - t;
+          var px = it * it * P.x + 2 * it * t * cx + t * t * T.x;
+          var py = it * it * P.y + 2 * it * t * cy + t * t * T.y;
+
+          // 越靠近目标越亮，像"命中了"
+          var alpha = 0.25 + t * 0.75;
+          var rr = 1.4 + t * 2.1;
+
+          var g = ctx.createRadialGradient(px, py, 0, px, py, rr * 3.2);
+          g.addColorStop(0, this._rgb(color, alpha));
+          g.addColorStop(1, this._rgb(color, 0));
+          ctx.beginPath();
+          ctx.fillStyle = g;
+          ctx.arc(px, py, rr * 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.fillStyle = this._rgb(color, Math.min(1, alpha + 0.25));
+          ctx.arc(px, py, rr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    },
+
+    /** 把 #rrggbb 转成带透明度的 rgba，避免每帧拼字符串出错。 */
+    _rgb: function (hex, alpha) {
+      var h = hex.replace("#", "");
+      var r = parseInt(h.substring(0, 2), 16);
+      var g = parseInt(h.substring(2, 4), 16);
+      var b = parseInt(h.substring(4, 6), 16);
+      return "rgba(" + r + "," + g + "," + b + "," + alpha + ")";
+    }
+  });
+
+  var attackLayer = new AttackLayer();
+
   var points = [];
   var hours = [];
   var markers = [];
@@ -254,6 +427,29 @@
 
     updateLabels(visible, sum, byCat);
     highlightDate();
+    updateAttacks();
+  }
+
+  /**
+   * 给连线层喂数据。
+   *
+   * 上限 120 条：线多了会糊成一团，而且攻击者里绝大多数是单次扫描，
+   * 把它们全画出来只会掩盖那几个真正高频的来源。
+   * 按窗口内请求数排序，只画最猛的那些。
+   */
+  var MAX_LINES = 120;
+
+  function updateAttacks() {
+    if (!attackLayer) return;
+    var list = [];
+    for (var i = 0; i < markers.length; i++) {
+      var it = markers[i];
+      if (it.tgtR > 0) {
+        list.push({ lat: it.p.lat, lon: it.p.lon, cat: it.p.cat, n: it.p.n });
+      }
+    }
+    list.sort(function (a, b) { return b.n - a.n; });
+    attackLayer.setAttacks(list.slice(0, MAX_LINES));
   }
 
   function updateLabels(visible, sum, byCat) {
@@ -386,6 +582,13 @@
       });
     }
 
+    var lineToggle = document.getElementById("tl-lines");
+    if (lineToggle) {
+      lineToggle.addEventListener("change", function () {
+        attackLayer.setVisible(lineToggle.checked);
+      });
+    }
+
     var playBtn = document.getElementById("tl-play");
     if (playBtn) {
       playBtn.addEventListener("click", function () {
@@ -397,6 +600,13 @@
   function startPlay() {
     if (playing) return;
     playing = true;
+    var lineToggle = document.getElementById("tl-lines");
+    if (lineToggle) {
+      lineToggle.addEventListener("change", function () {
+        attackLayer.setVisible(lineToggle.checked);
+      });
+    }
+
     var playBtn = document.getElementById("tl-play");
     if (playBtn) { playBtn.textContent = "暂停"; playBtn.classList.add("on"); }
 
@@ -416,6 +626,13 @@
   function stopPlay() {
     playing = false;
     if (playTimer) { clearInterval(playTimer); playTimer = null; }
+    var lineToggle = document.getElementById("tl-lines");
+    if (lineToggle) {
+      lineToggle.addEventListener("change", function () {
+        attackLayer.setVisible(lineToggle.checked);
+      });
+    }
+
     var playBtn = document.getElementById("tl-play");
     if (playBtn) { playBtn.textContent = "播放"; playBtn.classList.remove("on"); }
   }
@@ -452,6 +669,7 @@
     windowStart = Math.max(0, hours.length - windowSize);
 
     buildMarkers();
+    attackLayer.addTo(map);
     buildTimeline();
     buildDateChips();
     applyWindow(false, false);
@@ -488,7 +706,34 @@
           return r.json();
         });
 
-  ready.then(boot).catch(function (err) {
+  ready.then(function (data) {
+    boot(data);
+    watchForUpdate(data.generated_at);
+  }).catch(function (err) {
     document.getElementById("generated").textContent = "加载失败：" + err.message;
   });
+
+  /**
+   * 数据有新版本时给一个提示，不自动刷新。
+   *
+   * 为什么不 location.reload()：地图可能正被人拖到某个城市在看细节，
+   * 突然刷新会把他刚看的位置丢掉。让人自己点一下更合适。
+   */
+  function watchForUpdate(initialStamp) {
+    if (!initialStamp) return;
+
+    setInterval(function () {
+      fetch("/api/map/points", { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d || d.generated_at === initialStamp) return;
+          var el = document.getElementById("generated");
+          if (!el) return;
+          el.textContent = "有新数据（" + d.generated_at + "）· 点击刷新";
+          el.classList.add("has-update");
+          el.onclick = function () { location.reload(); };
+        })
+        .catch(function () { /* 轮询失败不打扰用户 */ });
+    }, 90000);
+  }
 })();

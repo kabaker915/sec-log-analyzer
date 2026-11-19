@@ -455,3 +455,35 @@
   .tl-sub { flex-wrap: wrap; }
   .tl-dates { margin-left: 0; width: 100%; }
 }
+
+/* ------------------------------------------------------------ 攻击连线 */
+/* 连线画在独立 pane 上，必须完全不接收事件，
+   否则它会挡住下面地图的拖动和点击 */
+.leaflet-pane.leaflet-attackPane-pane,
+.attack-canvas {
+  pointer-events: none;
+}
+
+.tl-check {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  color: #98a3b2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tl-check input {
+  accent-color: #4a9eff;
+  cursor: pointer;
+}
+
+/* 有新数据时把提示变成可点的链接样式 */
+#generated.has-update {
+  color: #7fc0ff;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
