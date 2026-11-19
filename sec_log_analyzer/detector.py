@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter, defaultdict
 from datetime import datetime
 
@@ -26,6 +27,25 @@ from .rules import (
 )
 
 _SEVERITY_ORDER = [Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL]
+
+# nginx 把不可打印字节写成四个可见字符：\x16
+_BINARY_ESCAPE = re.compile(r"\\x[0-9A-Fa-f]{2}")
+
+
+def _looks_binary(target: str, min_escapes: int = 5) -> bool:
+    """判断请求目标是不是二进制数据被转义后的形态。
+
+    判断依据只有一条：**出现足够多的 \\xNN 转义序列**。
+    正常 URL 里 `\\x` 几乎不会出现；一旦成串出现，说明客户端发的不是 HTTP。
+
+    为什么不用"含不可打印字符"：日志里肉眼看到的全是可打印字符
+    （nginx 已经转义过了），原始字节在日志文件里根本不存在。
+
+    阈���取 5：单个 \\x 可能是正常编码的巧合，成串出现就是二进制。
+    """
+    if not target:
+        return False
+    return len(_BINARY_ESCAPE.findall(target)) >= min_escapes
 
 
 class Detector:
@@ -100,6 +120,21 @@ class Detector:
 
         for entry in entries:
             if entry.source != "access":
+                continue
+
+            # 二进制载荷不跑内容规则。
+            #
+            # 真实案例：一个 TLS ClientHello 打到了 80 端口，nginx 把不可打印字节
+            # 转义成 \x16\x03\x01… 写进日志。握手包里 32 字节的随机数恰好有
+            # 一个 0x60（反引号），于是命中了 cmdi_subshell 的 `...` 规则，
+            # 报了一条"严重 命令注入"。
+            #
+            # 这是纯粹的随机撞车：内容规则假设载荷是文本，
+            # 而 TLS 握手根本不是 HTTP，里面任何一个字节都可能是 ASCII 标点。
+            #
+            # 正确做法是跳过内容检测，把它交给协议层（400 突发统计）——
+            # 那一层判断的是"这个请求形式上就不对"，对二进制同样有效。
+            if _looks_binary(entry.target):
                 continue
 
             payload = normalize(entry.target)

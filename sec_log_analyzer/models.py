@@ -86,6 +86,11 @@ class Finding:
     score: int
     reason: str
     ai_comment: str = ""
+    # 聚合信息。默认 1 表示这条告警没有再合并别的。
+    # 保留在模型里而不是塞进 reason，是因为下游（报告、控制台、导出）
+    # 可能需要按次数排序，从字符串里抠数字是最后手段。
+    count: int = 1
+    span: str = ""
 
     @property
     def ts(self) -> datetime | None:

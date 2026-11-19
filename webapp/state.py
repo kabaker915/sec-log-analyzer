@@ -395,6 +395,7 @@ def finding_row(f: Finding) -> dict:
         "category": f.category,
         "severity": f.severity.value,
         "score": f.score,
+        "count": getattr(f, "count", 1),
         "path": f.entry.path,
         "reason": f.reason,
         # 原文里可能含引号、尖括号、换行，全部原样传给前端，

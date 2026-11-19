@@ -11,6 +11,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
+from .aggregate import aggregate_findings
 from .ai_analyst import AIAnalyst
 from .config import Config
 from .detector import Detector
@@ -34,7 +35,12 @@ def analyze_bytes(
     entries, errors = parser.parse_text(text)
 
     detector = Detector(config)
-    findings = detector.detect(entries)
+    raw_findings = detector.detect(entries)
+
+    # 聚合放在 AI 研判之前：
+    # AI 按 (类型, 规则集) 去重，聚合先做能减少送进模型前的列表长度，
+    # 而且聚合后的 reason 更完整，研判质量反而更高。
+    findings = aggregate_findings(raw_findings)
 
     result = AnalysisResult(
         filename=filename,

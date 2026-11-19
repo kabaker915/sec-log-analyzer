@@ -29,7 +29,12 @@ def _fmt_ts(ts) -> str:
 def summary_rows(result: AnalysisResult) -> list[tuple[str, str]]:
     by_cat = result.count_by(lambda f: f.category)
     by_sev = Counter(SEVERITY_LABEL[f.severity] for f in result.findings)
-    top_ip = Counter(f.ip for f in result.findings).most_common(1)
+    # 用 count 累加，不是数行数：聚合后一个 IP 可能只占一行但代表 156 次告警，
+    # 数行数会算出「3 次」，把最活跃的来源排到后面去。
+    top_ip_counter: Counter = Counter()
+    for f in result.findings:
+        top_ip_counter[f.ip] += getattr(f, "count", 1)
+    top_ip = top_ip_counter.most_common(1)
     return [
         ("日志文件", result.filename),
         ("解析成功行数", str(len(result.entries))),
@@ -67,7 +72,10 @@ def to_markdown(result: AnalysisResult, max_detail: int = 50) -> str:
         lines.append("未检测到攻击特征。")
 
     lines.append("\n## 三、来源 IP 排名\n")
-    ip_counter = Counter(f.ip for f in result.findings)
+    # 同样按 count 累加，否则聚合后的排行会把高频来源排到低频后面
+    ip_counter = Counter()
+    for f in result.findings:
+        ip_counter[f.ip] += getattr(f, "count", 1)
     if ip_counter:
         lines.append("| 排名 | 源 IP | 告警数 |")
         lines.append("| --- | --- | --- |")
