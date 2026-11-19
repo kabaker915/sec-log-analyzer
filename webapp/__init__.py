@@ -261,6 +261,18 @@ def create_app(log_paths: list[str] | None = None, *,
             nonce=request.nonce,
         )
 
+    @app.get("/globe")
+    def globe_view():
+        gate = require_login()
+        if gate:
+            return gate
+        return render_template(
+            "globe.html",
+            user=session.get("user", ""),
+            dry_run=state.dry_run,
+            nonce=request.nonce,
+        )
+
     @app.get("/api/map/points")
     def api_map_points():
         """地图数据。
