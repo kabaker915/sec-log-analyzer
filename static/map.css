@@ -1,0 +1,272 @@
+/* 攻击者地图的样式。
+   全部放在这个文件里，是为了配合严格的 CSP：
+   style-src 只允许 'self'，模板里写 <style> 或 style="" 都会被拦掉。 */
+
+.map-body {
+  margin: 0;
+  padding: 0;
+  background: #0b0f14;
+  overflow: hidden;
+}
+
+/* 顶栏复用 app.css 的 .topbar，这里只压一下高度 */
+.map-body .topbar {
+  position: relative;
+  z-index: 1000;
+  background: rgba(11, 15, 20, .96);
+  border-bottom: 1px solid #1c2430;
+}
+
+#mapwrap {
+  position: relative;
+  height: calc(100vh - 52px);
+}
+
+#map {
+  position: absolute;
+  inset: 0;
+  /* 深色底图加载前先铺一层近黑，避免闪白 */
+  background: #0b0f14;
+}
+
+/* Leaflet 默认控件在深色背景上很刺眼，统一改暗 */
+.leaflet-control-attribution {
+  background: rgba(11, 15, 20, .78) !important;
+  color: #6b7684 !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a { color: #8b96a5 !important; }
+
+/* ------------------------------------------------------------ 左侧面板 */
+#panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 268px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  z-index: 900;
+  padding: 16px 16px 12px;
+  border-radius: 10px;
+  background: rgba(13, 18, 25, .92);
+  border: 1px solid #202a38;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
+  backdrop-filter: blur(6px);
+  color: #d7dee8;
+  font-size: 13px;
+}
+
+#panel h1 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  color: #f0f4f9;
+}
+
+#panel h2 {
+  margin: 16px 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #6b7684;
+}
+
+.sub {
+  margin: 0 0 12px;
+  font-size: 11px;
+  color: #6b7684;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.stat {
+  padding: 8px 6px;
+  border-radius: 7px;
+  background: #141b25;
+  text-align: center;
+}
+
+.stat b {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+  color: #f0f4f9;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat span {
+  font-size: 10px;
+  color: #6b7684;
+}
+
+/* ------------------------------------------------------------ 图例 */
+.legend {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #1c2430;
+}
+
+.lg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #a8b2c0;
+}
+
+.lg b {
+  margin-left: auto;
+  color: #d7dee8;
+  font-variant-numeric: tabular-nums;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dot.bait    { background: #ff3b30; box-shadow: 0 0 8px #ff3b30; }
+.dot.exploit { background: #ff9f0a; }
+.dot.cloud   { background: #ffd60a; }
+.dot.scan    { background: #4a9eff; }
+
+/* ------------------------------------------------------------ 国家列表 */
+.countries {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #a8b2c0;
+}
+
+.countries li {
+  padding: 2px 0;
+}
+
+.countries li span {
+  float: right;
+  color: #6b7684;
+  font-variant-numeric: tabular-nums;
+}
+
+.attr {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid #1c2430;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #4d5765;
+}
+
+/* ------------------------------------------------------------ 详情卡 */
+#detail {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 300px;
+  z-index: 900;
+  padding: 16px;
+  border-radius: 10px;
+  background: rgba(13, 18, 25, .95);
+  border: 1px solid #26313f;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .55);
+  color: #d7dee8;
+  font-size: 13px;
+}
+
+#detail h2 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  color: #f0f4f9;
+}
+
+#detail h3 {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: #6b7684;
+}
+
+#close-detail {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #6b7684;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#close-detail:hover {
+  background: #1c2430;
+  color: #d7dee8;
+}
+
+#detail dl {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: 4px 8px;
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+
+#detail dt {
+  color: #6b7684;
+}
+
+#detail dd {
+  margin: 0;
+  color: #d7dee8;
+  word-break: break-all;
+}
+
+.mono {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #8b96a5;
+}
+
+.paths {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paths li {
+  padding: 3px 0;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #8b96a5;
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------ 提示层 */
+.leaflet-tooltip.ip-tip {
+  background: rgba(13, 18, 25, .95);
+  border: 1px solid #2b3644;
+  color: #d7dee8;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  box-shadow: none;
+}
+
+.leaflet-tooltip.ip-tip::before {
+  display: none;
+}

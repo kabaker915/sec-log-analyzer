@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import secrets
@@ -247,6 +248,42 @@ def create_app(log_paths: list[str] | None = None, *,
             dry_run=state.dry_run,
             nonce=request.nonce,
         )
+
+    @app.get("/map")
+    def map_view():
+        gate = require_login()
+        if gate:
+            return gate
+        return render_template(
+            "map.html",
+            user=session.get("user", ""),
+            dry_run=state.dry_run,
+            nonce=request.nonce,
+        )
+
+    @app.get("/api/map/points")
+    def api_map_points():
+        """地图数据。
+
+        为什么读文件而不是每次请求都重算：
+        679 个 IP 要做地理查询 + 8000 行解析，单次约 1 秒。
+        地图只在数据更新时才有意义，没必要每个访客都触发一次重算。
+        重新生成用 tools/build_map_data.py（或定时任务）。
+        """
+        gate = api_gate()
+        if gate:
+            return gate
+        data_file = root / "data" / "map_points.json"
+        if not data_file.exists():
+            return jsonify({
+                "error": "not_built",
+                "hint": "先运行 tools/build_map_data.py 生成地图数据",
+            }), 404
+        try:
+            payload = json.loads(data_file.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return jsonify({"error": "bad_data", "detail": str(exc)}), 500
+        return jsonify(payload)
 
     # ------------------------------------------------------------ API
     def api_gate():
