@@ -19,6 +19,12 @@ EnvironmentFile=/etc/sec-log-analyzer.env
 Environment=PYTHONDONTWRITEBYTECODE=1
 Environment=PYTHONUNBUFFERED=1
 
+# 两个模块：检测引擎始终运行，Web 控制台可选。
+# 把下面这行的注释去掉并设为 0，就只做检测、不开任何监听端口 ——
+# 适合不允许对外监听、或前面有统一反向代理的环境。
+# 告警仍然会打到 journald（journalctl -u sec-log-analyzer -f 能看）。
+# Environment=CONSOLE_ENABLED=0
+
 # --from-start 是为了第一次部署就能看到历史告警。
 # 不加的话服务从文件末尾开始读，面板会一直空着，直到有新请求进来——
 # 在演示场景里会让人以为坏了。
@@ -27,7 +33,7 @@ Environment=PYTHONUNBUFFERED=1
 # 只跟 access.log 就永远只能看到轮转之后的，任何复盘都做不了。
 # 程序内部会展开通配符并按修改时间从旧到新排序；
 # .gz 会被自动跳过（压缩文件不能增量跟随，历史交给 CLI 离线分析）。
-ExecStart=/opt/sec-log-analyzer/.venv/bin/python run_web.py \
+ExecStart=/opt/sec-log-analyzer/.venv/bin/python run.py \
     --log "/var/log/nginx/access.log*" \
     --log "/var/log/auth.log*" \
     --host 127.0.0.1 \
