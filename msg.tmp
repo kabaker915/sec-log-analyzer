@@ -1,0 +1,23 @@
+fix: 命令行通配符没生效，抽出共享的路径展开
+
+问题：在 Windows 命令行里跑
+    run.py --log "archive\access-*.log" --console off
+结果是「监控 1 个日志」，然后报文件不存在。
+
+根因：通配符展开只写在 webapp/create_app 里，
+run.py 的无控制台模式没走那条路，把带星号的字符串直接给了 LogWatcher。
+而 Windows 的命令行不像 bash 会替程序展开通配符，它原样传进来。
+同一件事有两处实现，结果只修了一处。
+
+修法：新增 sec_log_analyzer/paths.py::expand_log_paths，
+放在引擎层，webapp 和 run.py 共用。
+引擎层不能依赖 Flask，所以这段逻辑必须放 sec_log_analyzer 而不是 webapp。
+
+CLI 也补上同样的展开（之前同样依赖 shell 展开）。
+
+展开后按 mtime 旧→新排序：反过来的话缓冲区里最新事件排在最后，
+行为检测的窗口基准会错。
+
+实测：反斜杠和正斜杠的通配符都能展开出 3 个文件；
+CLI 带引号的通配符正常出多份报告；控制台 /login 返回 200；
+44 项 Web + 20 项 Agent 测试全过。

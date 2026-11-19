@@ -62,13 +62,16 @@ def run_engine(log_paths: list[str], from_start: bool, dry_run: bool) -> int:
     这个模式下进程不监听任何端口，适合不允许对外提供 Web 服务的环境。
     """
     from sec_log_analyzer.config import Config
+    from sec_log_analyzer.paths import expand_log_paths
     from sec_log_analyzer.watcher import LogWatcher
 
-    print(f"[引擎] 启动，监控 {len(log_paths)} 个日志，关闭控制台", flush=True)
-    for p in log_paths:
+    # 通配符必须自己展开：命令行不会替我们展开
+    resolved = expand_log_paths(log_paths)
+    print(f"[引擎] 启动，监控 {len(resolved)} 个日志，关闭控制台", flush=True)
+    for p in resolved:
         print(f"[引擎]   {p}", flush=True)
 
-    watcher = LogWatcher(log_paths, Config.from_env(), from_start=from_start)
+    watcher = LogWatcher(resolved, Config.from_env(), from_start=from_start)
     stop = threading.Event()
 
     def _stop(signum, _frame):

@@ -34,6 +34,7 @@ from flask import (
 )
 
 from sec_log_analyzer.config import Config
+from sec_log_analyzer.paths import expand_log_paths
 from sec_log_analyzer.watcher import LogWatcher
 
 from .security import (
@@ -79,44 +80,6 @@ def _load_credentials() -> tuple[str, str]:
     print("生产部署请用 python -m webapp.hashpw 生成哈希并写入环境变量。")
     print("=" * 60)
     return user, hash_password(password)
-
-
-def _expand_log_paths(patterns: list[str]) -> list[str]:
-    """把 `--log` 传进来的路径展开成实际文件列表，按修改时间旧→新排序。
-
-    三种输入都要支持：
-      * 普通路径        /var/log/nginx/access.log
-      * 通配符          /var/log/nginx/access.log*      （含 .1、.2.gz）
-      * 目录            /var/log/nginx                  （目录下所有 .log）
-
-    .gz 直接跳过：压缩文件不能增量跟随（读到底就没法再追加判断），
-    历史 .gz 属于离线分析的范围，交给 CLI 处理。
-    """
-    import glob as _glob
-
-    out: list[tuple[float, str]] = []
-    for pattern in patterns:
-        p = Path(pattern)
-        if p.is_dir():
-            matches = [str(x) for x in p.glob("*.log*")]
-        elif any(c in pattern for c in "*?["):
-            matches = _glob.glob(pattern)
-        else:
-            matches = [pattern]
-
-        for m in matches:
-            if m.endswith(".gz"):
-                print(f"[跳过] {m} 是压缩文件，历史 .gz 请用 CLI 离线分析", flush=True)
-                continue
-            if not Path(m).exists():
-                continue
-            try:
-                out.append((os.path.getmtime(m), m))
-            except OSError:
-                continue
-
-    out.sort(key=lambda x: x[0])
-    return [m for _, m in out] or list(patterns)
 
 
 def create_app(log_paths: list[str] | None = None, *,
@@ -482,7 +445,8 @@ def create_app(log_paths: list[str] | None = None, *,
         #
         # 排序方向很重要：必须旧文件先读。反过来的话，
         # 缓冲区里时间最新的反而在最后，行为检测的窗口基准会错。
-        expanded = _expand_log_paths(log_paths)
+        # 展开逻辑在引擎层，run.py 的无控制台模式共用同一份
+        expanded = expand_log_paths(log_paths)
 
         # from_start=True 是为了演示：默认从文件末尾开始读（生产环境重启后
         # 不该把历史告警重放一遍），但演示时要立刻看到已有内容，

@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +31,41 @@ def _severity_tag(f) -> str:
         "medium": "[中危]",
         "low": "[低危]",
     }.get(f.severity.value, "[?]")
+
+
+def _expand(patterns: list[str]) -> list[str]:
+    """展开命令行里的通配符。
+
+    必须自己展开，不能指望 shell：
+      bash 会展开 `*.log` 才传给程序；**PowerShell 不会**，
+      它把 `archive\\access-*.log` 原样传进来，程序去找一个名字里带星号的文件，
+      然后报"文件不存在"——而文件明明就在那儿。
+
+    展开后按修改时间从旧到新排序：行为检测是有时间顺序的，
+    先读新文件会让窗口基准错乱。
+
+    没有通配符的路径原样返回，这样"文件不存在"的报错指向用户真正写的那个路径。
+    """
+    import glob as _glob
+
+    out: list[tuple[float, str]] = []
+    for pattern in patterns:
+        if not any(c in pattern for c in "*?["):
+            out.append((0.0, pattern))
+            continue
+        hits = _glob.glob(pattern)
+        if not hits:
+            # 通配符没匹配到任何文件，把原模式带下去，让它报"不存在"
+            out.append((0.0, pattern))
+            continue
+        for h in hits:
+            try:
+                out.append((os.path.getmtime(h), h))
+            except OSError:
+                out.append((0.0, h))
+
+    # 保持"无通配符"参数的原始顺序，只对通配符展开结果按时间排
+    return [p for _, p in sorted(out, key=lambda x: x[0])]
 
 
 def _run_tail(files: list[str], config: Config, *, from_start: bool) -> int:
@@ -103,10 +139,10 @@ def main(argv: list[str] | None = None) -> int:
         config.ai_enabled = False
 
     if args.tail:
-        return _run_tail(args.files, config, from_start=args.from_start)
+        return _run_tail(_expand(args.files), config, from_start=args.from_start)
 
     exit_code = 0
-    for path in args.files:
+    for path in _expand(args.files):
         p = Path(path)
         if not p.exists():
             print(f"[跳过] 文件不存在：{p}", file=sys.stderr)

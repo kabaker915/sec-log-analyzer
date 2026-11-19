@@ -4,6 +4,55 @@ sec-log-analyzer 的所有入口和参数。按「要做什么」查，不用通
 
 ---
 
+## 速查（日常只用这几条）
+
+```powershell
+cd E:\sec-log-analyzer
+```
+
+```powershell
+# 拉服务器日志到 archive/（按日期自动命名）
+bash tools/pull_logs.sh
+
+# 连历史一起拉（约 9 天）
+bash tools/pull_logs.sh --history
+
+# 分析，出 md / html / csv
+.\.venv\Scripts\python.exe -m sec_log_analyzer.cli archive\access-2026-11-19-*.log --no-ai --out reports\today
+
+# 开控制台（浏览器 http://127.0.0.1:8090）
+.\.venv\Scripts\python.exe run.py --log "archive\access-*.log" --port 8090 --from-start
+
+# 只检测，不开端口
+.\.venv\Scripts\python.exe run.py --log "archive\access-*.log" --console off
+
+# 改正则后验一条 payload
+.\.venv\Scripts\python.exe tools\score.py "/p?id=1' OR '1'='1"
+
+# Agent 研判
+.\.venv\Scripts\python.exe -m agents.app chat --index 0
+
+# 看某个 IP 干了什么
+grep -F "1.2.3.4" archive\access-2026-11-19-*.log
+```
+
+```powershell
+# 服务器面板：开隧道，窗口别关，然后浏览器访问 127.0.0.1:8080
+ssh -N sec-console
+```
+
+```bash
+# 服务器上
+systemctl restart sec-log-analyzer
+journalctl -u sec-log-analyzer -f
+```
+
+完整参数见下文。
+
+---
+
+
+
 ## 0. 准备
 
 ```powershell
