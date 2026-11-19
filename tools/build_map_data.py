@@ -89,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
         "n": 0, "first": None, "last": None,
         "ua": Counter(), "paths": Counter(),
         "bait": False, "bait_cloud": False, "bait_weak": False,
-        "exploit": False,
+        "exploit": False, "h": Counter(),
     })
     total_lines = 0
     # 去重键。archive/ 里是多份重叠的拉取结果——
@@ -120,6 +120,10 @@ def main(argv: list[str] | None = None) -> int:
             if e.ts:
                 rec["first"] = e.ts if rec["first"] is None or e.ts < rec["first"] else rec["first"]
                 rec["last"] = e.ts if rec["last"] is None or e.ts > rec["last"] else rec["last"]
+            if e.ts:
+                # 按小时分桶：时间轴要能"拖到某一小时看谁在打"，
+                # 只有首末时间点做不出连续回放，只能跳变。
+                rec["h"][e.ts.strftime("%Y-%m-%dT%H")] += 1
             if e.user_agent:
                 rec["ua"][e.user_agent[:80]] += 1
             if e.path:
@@ -144,6 +148,21 @@ def main(argv: list[str] | None = None) -> int:
             if finding.category in EXPLOIT_CATEGORIES and finding.ip in per_ip:
                 per_ip[finding.ip]["exploit"] = True
 
+    # 全局小时轴：从最早到最晚，补齐中间没有事件的空小时。
+    # 不补的话时间轴刻度会跳（比如 13 号到 17 号之间是空的，
+    # 滑块会"瞬间跳过去"，看起来像数据丢了）。
+    all_hours: list[str] = []
+    if per_ip:
+        stamps = sorted({h for rec in per_ip.values() for h in rec["h"]})
+        if stamps:
+            from datetime import datetime as _dt
+            cur = _dt.strptime(stamps[0], "%Y-%m-%dT%H")
+            end = _dt.strptime(stamps[-1], "%Y-%m-%dT%H")
+            while cur <= end:
+                all_hours.append(cur.strftime("%Y-%m-%dT%H"))
+                cur = cur + __import__("datetime").timedelta(hours=1)
+    hour_index = {h: i for i, h in enumerate(all_hours)}
+
     points = []
     no_geo = 0
     for ip, rec in per_ip.items():
@@ -163,6 +182,7 @@ def main(argv: list[str] | None = None) -> int:
             "last": rec["last"].isoformat() if rec["last"] else "",
             "ua": rec["ua"].most_common(1)[0][0] if rec["ua"] else "-",
             "paths": [p for p, _ in rec["paths"].most_common(4)],
+            "h": {str(hour_index[h]): n for h, n in rec["h"].items() if h in hour_index},
             "cat": ("bait" if rec["bait"]
                     else ("exploit" if rec["exploit"]
                           else ("cloud" if rec["bait_cloud"]
@@ -186,6 +206,7 @@ def main(argv: list[str] | None = None) -> int:
             "exploit": sum(1 for p in points if p["cat"] == "exploit"),
             "top_countries": countries.most_common(8),
         },
+        "hours": all_hours,
         "points": points,
     }
 
