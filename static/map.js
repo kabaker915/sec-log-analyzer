@@ -28,6 +28,62 @@
   var TWEEN_MS = 240;
   var FLASH_MS = 700;
 
+  // 连线总数上限：绝大多数攻击者只扫一次，全画出来会盖住那几个高频来源
+  var MAX_LINES = 120;
+  // 画流光拖尾的条数上限。每条要 8 次 stroke，全画每帧 960 次描边会掉帧。
+  // 底弧仍然全画，所以"有 120 条线"这个信息不丢。
+  var MAX_STREAKS = 48;
+
+  /* ---------------------------------------------------------------- 坐标系纠偏
+   *
+   * 我们的日志 IP 地理库给的是 WGS-84（国际标准）。
+   * 高德瓦片用的是 GCJ-02（国测局加密坐标），两者在国内差 300–800 米。
+   *
+   * 之前我判断"看国家/城市级分布，几百米不到一个像素，可以忽略"——
+   * 这个判断在 zoom 3 成立，但用户一放大就露馅了：点会整体偏到隔壁街区，
+   * 缩放越大偏得越明显。**缩放不精准就是这个问题，不是渲染 bug。**
+   *
+   * 所以必须把点转到 GCJ-02 再投影，让点和底图用同一套坐标。
+   * 这是标准的 eviltransform 算法，纯数学，无依赖。
+   */
+  var PI = 3.1415926535897932384626;
+  var AXIS = 6378245.0;
+  var EE = 0.00669342162296594323;
+
+  function outOfChina(lat, lon) {
+    return lon < 72.004 || lon > 137.8347 || lat < 0.8293 || lat > 55.8271;
+  }
+
+  function transformLat(x, y) {
+    var ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+    ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0;
+    ret += (20.0 * Math.sin(y * PI) + 40.0 * Math.sin(y / 3.0 * PI)) * 2.0 / 3.0;
+    ret += (160.0 * Math.sin(y / 12.0 * PI) + 320 * Math.sin(y * PI / 30.0)) * 2.0 / 3.0;
+    return ret;
+  }
+
+  function transformLon(x, y) {
+    var ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+    ret += (20.0 * Math.sin(6.0 * x * PI) + 20.0 * Math.sin(2.0 * x * PI)) * 2.0 / 3.0;
+    ret += (20.0 * Math.sin(x * PI) + 40.0 * Math.sin(x / 3.0 * PI)) * 2.0 / 3.0;
+    ret += (150.0 * Math.sin(x / 12.0 * PI) + 300.0 * Math.sin(x / 30.0 * PI)) * 2.0 / 3.0;
+    return ret;
+  }
+
+  /** WGS-84 → GCJ-02。国外坐标原样返回（高德在境外也用 WGS-84）。 */
+  function toGcj02(lat, lon) {
+    if (outOfChina(lat, lon)) return [lat, lon];
+    var dLat = transformLat(lon - 105.0, lat - 35.0);
+    var dLon = transformLon(lon - 105.0, lat - 35.0);
+    var radLat = lat / 180.0 * PI;
+    var magic = Math.sin(radLat);
+    magic = 1 - EE * magic * magic;
+    var sqrtMagic = Math.sqrt(magic);
+    dLat = (dLat * 180.0) / ((AXIS * (1 - EE)) / (magic * sqrtMagic) * PI);
+    dLon = (dLon * 180.0) / (AXIS / sqrtMagic * Math.cos(radLat) * PI);
+    return [lat + dLat, lon + dLon];
+  }
+
   var map = L.map("map", {
     worldCopyJump: true,
     minZoom: 2,
@@ -52,7 +108,9 @@
   var layer = L.layerGroup().addTo(map);
 
   // 被攻击的目标：服务器所在位置（广州）
-  var TARGET = { lat: 23.1291, lon: 113.264 };
+  var TARGET_RAW = [23.1291, 113.264];            // 广州，WGS-84
+  var TARGET_GCJ = toGcj02(TARGET_RAW[0], TARGET_RAW[1]);
+  var TARGET = { lat: TARGET_GCJ[0], lon: TARGET_GCJ[1] };
 
   map.createPane("attackPane");
   map.getPane("attackPane").style.zIndex = 450;
@@ -172,43 +230,68 @@
         var cx = mx - (dy / len) * bend;
         var cy = my + (dx / len) * bend;
 
-        var color = COLORS[a.cat] || COLORS.scan;
+        // 轨迹统一红色：颜色已经用点区分了种类，
+        // 线再分色只会让图变成调色板。红色 = 攻击流。
+        var RED = "255,69,58";
 
-        // 底弧
+        // 底弧：很淡，只用来交代"这条线存在"
         ctx.beginPath();
         ctx.moveTo(P.x, P.y);
         ctx.quadraticCurveTo(cx, cy, T.x, T.y);
-        ctx.strokeStyle = this._rgb(color, a.cat === "bait" ? 0.42 : 0.16);
-        ctx.lineWidth = a.cat === "bait" ? 1.6 : 1;
+        ctx.strokeStyle = "rgba(" + RED + ",0.10)";
+        ctx.lineWidth = 1;
         ctx.stroke();
 
-        // 流动光点：相位按序号错开，看起来是持续有东西打过来，不是齐步走
-        var period = 2400;
-        var phase = ((ts - this._t0) / period + i * 0.17) % 1;
+        // 流光：只给前 MAX_STREAKS 条画，否则每帧上千次 stroke
+        if (i >= MAX_STREAKS) continue;
 
-        for (var k = 0; k < 2; k++) {
-          var t = (phase + k * 0.5) % 1;
-          var it = 1 - t;
-          var px = it * it * P.x + 2 * it * t * cx + t * t * T.x;
-          var py = it * it * P.y + 2 * it * t * cy + t * t * T.y;
+        var period = 2600;
+        var phase = ((ts - this._t0) / period + a.seed) % 1;
 
-          // 越靠近目标越亮，像"命中了"
-          var alpha = 0.25 + t * 0.75;
-          var rr = 1.4 + t * 2.1;
+        // 进出两头淡入淡出，避免光带在起点"凭空出现"
+        var fade = Math.min(1, Math.min(phase, 1 - phase) * 6);
 
-          var g = ctx.createRadialGradient(px, py, 0, px, py, rr * 3.2);
-          g.addColorStop(0, this._rgb(color, alpha));
-          g.addColorStop(1, this._rgb(color, 0));
+        var SEG = 8;
+        var TAIL = 0.17;          // 拖尾长度占曲线比例
+        var step = TAIL / SEG;
+
+        for (var s2 = 0; s2 < SEG; s2++) {
+          var t1 = phase - s2 * step;
+          var t2 = phase - (s2 + 1) * step;
+          if (t2 < 0 || t1 > 1) continue;
+          if (t1 > 1) t1 = 1;
+          if (t2 < 0) t2 = 0;
+
+          var i1 = 1 - t1, i2 = 1 - t2;
+          var x1 = i1 * i1 * P.x + 2 * i1 * t1 * cx + t1 * t1 * T.x;
+          var y1 = i1 * i1 * P.y + 2 * i1 * t1 * cy + t1 * t1 * T.y;
+          var x2 = i2 * i2 * P.x + 2 * i2 * t2 * cx + t2 * t2 * T.x;
+          var y2 = i2 * i2 * P.y + 2 * i2 * t2 * cy + t2 * t2 * T.y;
+
+          // 头亮尾暗、头粗尾细 —— 这就是"流光"和"一条线"的区别
+          var k = 1 - s2 / SEG;
           ctx.beginPath();
-          ctx.fillStyle = g;
-          ctx.arc(px, py, rr * 3.2, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.fillStyle = this._rgb(color, Math.min(1, alpha + 0.25));
-          ctx.arc(px, py, rr, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = "rgba(" + RED + "," + (0.85 * k * k * fade) + ")";
+          ctx.lineWidth = 0.6 + 2.6 * k;
+          ctx.lineCap = "round";
+          ctx.stroke();
         }
+
+        // 光点头部：一团红色辉光，不用实心圆
+        var ih = 1 - phase;
+        var hx = ih * ih * P.x + 2 * ih * phase * cx + phase * phase * T.x;
+        var hy = ih * ih * P.y + 2 * ih * phase * cy + phase * phase * T.y;
+        var hg = ctx.createRadialGradient(hx, hy, 0, hx, hy, 9);
+        hg.addColorStop(0, "rgba(255,120,110," + (0.95 * fade) + ")");
+        hg.addColorStop(0.35, "rgba(" + RED + "," + (0.55 * fade) + ")");
+        hg.addColorStop(1, "rgba(" + RED + ",0)");
+        ctx.beginPath();
+        ctx.fillStyle = hg;
+        ctx.arc(hx, hy, 9, 0, Math.PI * 2);
+        ctx.fill();
+
       }
     },
 
@@ -272,7 +355,11 @@
 
     points.forEach(function (p) {
       var color = COLORS[p.cat] || COLORS.scan;
-      var m = L.circleMarker([p.lat, p.lon], {
+      // 纠偏后再投影，否则放大后点会整体偏几百米
+      var g = toGcj02(p.lat, p.lon);
+      p.glat = g[0];
+      p.glon = g[1];
+      var m = L.circleMarker([p.glat, p.glon], {
         renderer: canvas,
         radius: 0,
         color: color,
@@ -437,7 +524,6 @@
    * 把它们全画出来只会掩盖那几个真正高频的来源。
    * 按窗口内请求数排序，只画最猛的那些。
    */
-  var MAX_LINES = 120;
 
   function updateAttacks() {
     if (!attackLayer) return;
@@ -445,11 +531,16 @@
     for (var i = 0; i < markers.length; i++) {
       var it = markers[i];
       if (it.tgtR > 0) {
-        list.push({ lat: it.p.lat, lon: it.p.lon, cat: it.p.cat, n: it.p.n });
+        list.push({ lat: it.p.glat, lon: it.p.glon, cat: it.p.cat, n: it.p.n });
       }
     }
     list.sort(function (a, b) { return b.n - a.n; });
-    attackLayer.setAttacks(list.slice(0, MAX_LINES));
+    var top = list.slice(0, MAX_LINES);
+    // 每条线一个固定的随机相位，否则所有光点齐步走
+    for (var k = 0; k < top.length; k++) {
+      top[k].seed = (k * 0.1373) % 1;
+    }
+    attackLayer.setAttacks(top);
   }
 
   function updateLabels(visible, sum, byCat) {
