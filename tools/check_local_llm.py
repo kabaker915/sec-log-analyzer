@@ -200,7 +200,7 @@ def test_tool_calling(model: str, base: str = BASE) -> dict:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="本地模型环境自检")
-    ap.add_argument("--model", default="qwen2.5:3b")
+    ap.add_argument("--model", default="qwen2.5:7b")
     ap.add_argument("--base", default=BASE)
     ap.add_argument("--skip-test", action="store_true", help="跳过工具调用实测")
     args = ap.parse_args(argv)
