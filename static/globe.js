@@ -30,7 +30,7 @@
   // 所以这里**不需要** GCJ-02 纠偏 —— 那是高德瓦片才有的问题。
   var TARGET = { lat: 23.1291, lng: 113.264 };
 
-  var MAX_ARCS = 60;
+  var MAX_ARCS = 40;   // 60 条弧线 + 省界 + 点，中低端显卡会掉帧
 
   var el = function (id) { return document.getElementById(id); };
 
@@ -38,8 +38,10 @@
     .globeImageUrl(ASSET + "/earth-night.jpg")
     .bumpImageUrl(ASSET + "/earth-topology.png")
     .backgroundColor("rgba(0,0,0,0)")
-    .atmosphereColor("#3a86ff")
-    .atmosphereAltitude(0.18)
+    // 大气层原本是 #3a86ff / 0.18，配夜色贴图时整颗球泛蓝，
+    // 看起来像"地球全蓝"。压到 0.08 并调暗，只留边缘一圈冷光。
+    .atmosphereColor("#1d4f7a")
+    .atmosphereAltitude(0.08)
     .showGraticules(false);
 
   // 清晰度：默认 renderer 用 devicePixelRatio，但在高分屏上会被浏览器
@@ -47,7 +49,9 @@
   // 上限压 2 是因为 3x 屏上 4 倍像素量对 GPU 太重，收益却看不出来。
   (function sharpen() {
     var r = globe.renderer();
-    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    // 2 在 4K 屏上像素量是 1 的 4 倍，配 339 个省界网格直接掉帧。
+    // 1.5 是清晰度和帧率的折中，肉眼几乎看不出差别。
+    r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     // bumpScale 默认 10，山脉起伏很平；调到 25 才有"球体"的立体感
     var m = globe.globeMaterial();
     if (m) {
@@ -70,9 +74,13 @@
     globe
       .polygonsData(features)
       .polygonAltitude(0.005)
-      .polygonCapColor(function () { return "rgba(90,176,255,0.025)"; })
+      // 不填色。只画描边有两个原因：
+      //   1. 填色会盖住贴图上的城市灯光，"清晰度"反而下降
+      //   2. 九段线那种极细的多边形一旦三角化，容易生成一大片面，
+      //      把整个球面染成蓝色（这就是"地球全蓝"的一个来源）
+      .polygonCapColor(function () { return "rgba(0,0,0,0)"; })
       .polygonSideColor(function () { return "rgba(0,0,0,0)"; })
-      .polygonStrokeColor(function () { return "rgba(122,203,255,0.55)"; })
+      .polygonStrokeColor(function () { return "rgba(122,203,255,0.6)"; })
       .polygonsTransitionDuration(0);
   };
 
@@ -81,7 +89,7 @@
   if (window.__PROVINCES__ && window.__PROVINCES__.features) {
     provincesLayer(window.__PROVINCES__.features);
   } else {
-    fetch(GEO + "/china-provinces.json")
+    fetch(GEO + "/china-provinces-lite.json")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (gj) {
         if (gj && gj.features) provincesLayer(gj.features);

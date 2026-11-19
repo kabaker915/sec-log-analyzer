@@ -110,7 +110,10 @@ def main() -> int:
     payload = json.loads(data_path.read_text(encoding="utf-8"))
 
     # 省界数据内联进快照：快照是本地打开的，取不到 /static 下的文件
-    geo_path = ROOT / "static" / "vendor" / "geo" / "china-provinces.json"
+    # 优先用精简版：完整版 568KB、25240 个顶点，快照里既大又卡
+    geo_path = ROOT / "static" / "vendor" / "geo" / "china-provinces-lite.json"
+    if not geo_path.exists():
+        geo_path = ROOT / "static" / "vendor" / "geo" / "china-provinces.json"
     provinces = json.loads(geo_path.read_text(encoding="utf-8")) if geo_path.exists() else {"features": []}
     html = TEMPLATE.format(
         app_css=read(ROOT / "static/app.css"),
